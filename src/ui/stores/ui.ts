@@ -63,6 +63,7 @@ const LS_MODE = 'ui.mode';
 const LS_PALETTE = 'ui.palette';
 const LS_STYLE = 'ui.style';
 const LS_TRAITMODE = 'ui.traitMode';
+const LS_PARAMSTAB = 'ui.paramsTab';
 
 export const mode: Writable<Mode> = writable(readChoice<Mode>(LS_MODE, MODES, 'dark'));
 export const palette: Writable<Palette> = writable(
@@ -96,6 +97,23 @@ export function setPalette(p: Palette): void {
 }
 export function setStyle(s: Style): void {
   style.set(s);
+}
+
+// ===========================================================================
+// Onglet de la page Paramètres (persisté localStorage) — Feature 012.
+//   'principaux' = essentiel (apparence, seed, effectif, année, chance de pouvoir) ;
+//   'avances'    = calibration fine (hérédité, D/K, pondérations, résilience overrides).
+//   Défaut 'principaux' ; valeur absente/invalide ⇒ repli défaut (readChoice). État
+//   d'INTERFACE : jamais inclus dans l'export/import (Principe VI).
+// ===========================================================================
+export type ParamsTab = 'principaux' | 'avances';
+export const PARAMS_TABS: readonly ParamsTab[] = ['principaux', 'avances'];
+export const paramsTab: Writable<ParamsTab> = writable(
+  readChoice<ParamsTab>(LS_PARAMSTAB, PARAMS_TABS, 'principaux'),
+);
+paramsTab.subscribe((t) => lsSet(LS_PARAMSTAB, t));
+export function setParamsTab(t: ParamsTab): void {
+  paramsTab.set(t);
 }
 
 // ===========================================================================
