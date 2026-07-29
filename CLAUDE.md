@@ -1,25 +1,28 @@
 <!-- SPECKIT START -->
-## Feature active : 011-corrections-bugs-ui
+## Feature active : 012-reorganisation-parametres-ui
 
-- **Plan** : `specs/011-corrections-bugs-ui/plan.md` (contexte technique, décisions, Constitution Check)
-- **Spec** : `specs/011-corrections-bugs-ui/spec.md` (10 user stories, clarifications 2026-07-08)
-- **Recherche / décisions** : `specs/011-corrections-bugs-ui/research.md` (R1→R10 + maj doc §IX)
-- **Modèle de données** : `specs/011-corrections-bugs-ui/data-model.md` (genesisYear, duplicationD, P/M)
-- **Contrats** : `specs/011-corrections-bugs-ui/contracts/ui-contract.md` (signatures cœur + points UI)
-- **Périmètre** : lot de 10 corrections indépendantes (issu de `rsrc/BugReport.txt` + 4 ajouts) :
-  US1 consanguinité **lignée directe** (2 niveaux, `pairing.ts`) ; US2 **date partagée de portée**
-  (`tick.ts`+`reproduce.ts`) ; US3 **génération 0 relative à la genèse** (`derived.ts`, `genesisYear`
-  persisté, `FORMAT_VERSION` 3→4) ; US4 étiquettes **« P x » / « M y »** (sans « : ») ; US5 filtres de
-  trait **à la ligne** ; US6 export **`PowerGenerator_{type}_…`** (underscore) ; US7 **aperçu de pouvoir
-  temps réel** (seed d'aperçu **stable**) sur le formulaire de création ; US8 duplication
-  **`min(100, résilience·D)`**, `D` multiplicateur défaut **0.25** (`traitsToPowers.ts`/`parameters.ts`) ;
-  US9 bouton **« Régénérer »** sandbox (§6.4 seul, P/M §7.2 ou cas A) ; US10 **P/M non bornées** en
-  saisie manuelle (cœur §7.2 déjà conforme).
-- **Actions Constitution** : Principe IX → **mettre à jour `rsrc/DescriptionProjet.md`** (§6.4.1, §6.6.1,
-  §6.6.2, génération) **avec autorisation auteur** avant le code, puis régénérer le `.adoc` ; Principe VI
-  → bump `FORMAT_VERSION` + migration/fallback (naissance la plus ancienne). **Aucune dépendance ajoutée** ;
-  déterminisme préservé (US2/US7/US8/US9) → **tests Vitest obligatoires** (US1/US2/US3/US8/US9).
-- Features livrées : 10 (`specs/010-tri-filtres-etiquettes/`) filtres de présence de trait (4 options
+- **Plan** : `specs/012-reorganisation-parametres-ui/plan.md` (contexte technique, Constitution Check, structure)
+- **Spec** : `specs/012-reorganisation-parametres-ui/spec.md` (3 user stories, clarifications 2026-07-29)
+- **Recherche / décisions** : `specs/012-reorganisation-parametres-ui/research.md` (R1→R10 : onglets, modales, store)
+- **Modèle de données** : `specs/012-reorganisation-parametres-ui/data-model.md` (état UI `paramsTab` ; aucune entité métier)
+- **Contrats** : `specs/012-reorganisation-parametres-ui/contracts/ui-contract.md` (onglets, modales, invariants INV-1→11)
+- **Périmètre** : refonte **purement UI** de la page Paramètres, **cible v0.12.0**. Page réorganisée en
+  **2 onglets** « Principaux » (thème + graine + `batchSize` + `birthYear` + `powerChancePct`) / « Avancés »
+  (résilience initiale, `D`, `K`, tout « Hérédité & naissance », pondérations gabarits, overrides résilience),
+  onglet Principaux actif par défaut, sur le patron d'onglets de `SandboxView`. `TraitCatalogEditor` et
+  `SpeciesEditor` (+ case **consanguinité** en tête) déplacés en **modales** (patron `SandboxPersonForm` :
+  Échap/backdrop/bouton). Bouton **« Générer »** persistant hors panneaux. Store UI `paramsTab` persisté
+  `localStorage` (patron thème). **IMPÉRATIF : aucun paramètre supprimé/désactivé** (FR-001/FR-002/SC-002).
+- **Actions Constitution** : Principe IX → **aucune** maj doc (l'agencement de la page n'est pas prescrit ;
+  §8.4/§9 restent exacts). Principe IV → **zéro modif `src/core`** (tout en `src/ui`). Principe VI → `paramsTab`
+  hors export/import ; **pas de bump `FORMAT_VERSION`**. **Aucune dépendance ajoutée** ; déterminisme préservé
+  (SC-004) ; validation par checklist manuelle + 1 test unitaire pur du store d'onglet.
+- Features livrées : 11 (`specs/011-corrections-bugs-ui/`) lot de 10 corrections (consanguinité lignée directe,
+  date partagée de portée, génération 0 relative à la genèse + `genesisYear` + `FORMAT_VERSION` 3→4, étiquettes
+  P/M sans « : », filtres à la ligne, export `PowerGenerator_`, aperçu pouvoir temps réel, duplication
+  `min(100, résilience·D)` D défaut 0.25, bouton « Régénérer » sandbox, P/M non bornées en saisie) + fix
+  libellé « Ajout seul » → « {aj} sur {Kp} » (v0.11.1) ;
+  10 (`specs/010-tri-filtres-etiquettes/`) filtres de présence de trait (4 options
   mono-sélection) + tri par clic sur en-tête (Nom/Date/Âge) + étiquettes P/M enrichies ;
   9 (`specs/009-ajout-4-styles/`) +4 styles (Éditorial/Terminal/Néo-brutaliste/Organique)
   + 3 palettes (ambre/rose/bleu), 72 combinaisons, 6 polices OFL précachées ;

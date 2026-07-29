@@ -15,6 +15,13 @@
   let newEspece = '';
   const newGenre: Record<string, string> = {};
 
+  // Sélecteur d'espèce (BUG-001) : on n'affiche que l'espèce sélectionnée ; défaut « humain »
+  // (id `humain` si présent, sinon 1ʳᵉ espèce). Se recale si l'espèce courante est supprimée.
+  let selectedEspeceId = '';
+  $: humainId = $especes.find((e) => e.id === 'humain')?.id ?? $especes[0]?.id ?? '';
+  $: if (!$especes.some((e) => e.id === selectedEspeceId)) selectedEspeceId = humainId;
+  $: selectedEspece = $especes.find((e) => e.id === selectedEspeceId) ?? null;
+
   function addEspece() {
     const label = newEspece.trim();
     if (!label) return;
@@ -50,14 +57,19 @@
 </script>
 
 <div class="species-editor">
-  {#each $especes as espece (espece.id)}
-    {@const validation = validateEspece(espece)}
-    <details class="espece" open>
-      <summary>
-        <span class="esp-name">{espece.label}</span>
-        {#if !validation.ok}<span class="warn" title={validation.error}>⚠</span>{/if}
-      </summary>
+  <label class="espece-picker">
+    Espèce
+    <select bind:value={selectedEspeceId}>
+      {#each $especes as e (e.id)}
+        <option value={e.id}>{e.label}</option>
+      {/each}
+    </select>
+  </label>
 
+  {#if selectedEspece}
+    {@const espece = selectedEspece}
+    {@const validation = validateEspece(espece)}
+    <div class="espece">
       <div class="esp-head">
         <input
           class="esp-label"
@@ -133,8 +145,8 @@
           <p class="error">{validation.error}</p>
         {/if}
       </fieldset>
-    </details>
-  {/each}
+    </div>
+  {/if}
 
   <div class="add add-espece">
     <input
@@ -153,20 +165,22 @@
     flex-direction: column;
     gap: 0.6rem;
   }
+  .espece-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--fg);
+  }
+  .espece-picker select {
+    font-size: 0.9rem;
+    padding: 0.3rem 0.4rem;
+  }
   .espece {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 0.4rem 0.7rem 0.7rem;
-  }
-  summary {
-    cursor: pointer;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .warn {
-    color: var(--danger, #c0392b);
   }
   .esp-head {
     display: flex;

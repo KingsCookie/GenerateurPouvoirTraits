@@ -21,6 +21,14 @@
     Action: 'Action',
   };
 
+  // Sélecteur de type (BUG-001) : on n'affiche que le type sélectionné (défaut « Action »).
+  // Options triées alphabétiquement par libellé. L'ordre `TRAIT_TYPES` du cœur (sérialisation
+  // déterministe) reste INCHANGÉ : ce tri est purement un ordre d'affichage de l'UI.
+  const sortedTypes: TraitType[] = [...TRAIT_TYPES].sort((a, b) =>
+    TYPE_LABELS[a].localeCompare(TYPE_LABELS[b], 'fr'),
+  );
+  let selectedType: TraitType = 'Action';
+
   // Saisie d'ajout par type (réinitialisée après ajout).
   const draft: Record<string, string> = {};
 
@@ -63,74 +71,76 @@
     pas produit (les traits déjà tirés restent actifs).
   </p>
 
-  {#each TRAIT_TYPES as type (type)}
-    <details class="type" open>
-      <summary>
-        <span class="type-name">{TYPE_LABELS[type]}</span>
-        <span class="count">{$catalog.byType[type].length}</span>
-      </summary>
+  <label class="type-picker">
+    Type de trait
+    <select bind:value={selectedType}>
+      {#each sortedTypes as type (type)}
+        <option value={type}>{TYPE_LABELS[type]} ({$catalog.byType[type].length})</option>
+      {/each}
+    </select>
+  </label>
 
-      <div class="type-head">
-        <label class="type-weight">
-          Poids du type
+  <div class="type">
+    <div class="type-head">
+      <label class="type-weight">
+        Poids du type
+        <input
+          type="number"
+          min="0"
+          step="0.1"
+          value={$parameters.traitTypeWeights[selectedType]}
+          on:input={(e) => onTypeWeight(selectedType, e)}
+        />
+      </label>
+      <button
+        type="button"
+        class="propagate"
+        title="Réinitialiser les poids surchargés des traits de ce type"
+        on:click={() => catPropagateTypeWeight(selectedType)}
+      >
+        Propager
+      </button>
+    </div>
+
+    <ul class="traits">
+      {#each $catalog.byType[selectedType] as trait (trait.id)}
+        <li>
           <input
+            class="label"
+            type="text"
+            value={trait.label}
+            on:change={(e) => onRename(trait.id, e)}
+          />
+          <input
+            class="weight"
             type="number"
             min="0"
             step="0.1"
-            value={$parameters.traitTypeWeights[type]}
-            on:input={(e) => onTypeWeight(type, e)}
+            placeholder={`${$parameters.traitTypeWeights[selectedType]}`}
+            value={trait.weight ?? ''}
+            on:input={(e) => onTraitWeight(trait.id, e)}
+            title="Poids (surcharge). Vide = hérite du poids du type."
           />
-        </label>
-        <button
-          type="button"
-          class="propagate"
-          title="Réinitialiser les poids surchargés des traits de ce type"
-          on:click={() => catPropagateTypeWeight(type)}
-        >
-          Propager
-        </button>
-      </div>
+          <button
+            type="button"
+            class="del"
+            title="Supprimer (n'affecte que les tirages futurs)"
+            on:click={() => catRemoveTrait(trait.id)}>✕</button
+          >
+        </li>
+      {/each}
+    </ul>
 
-      <ul class="traits">
-        {#each $catalog.byType[type] as trait (trait.id)}
-          <li>
-            <input
-              class="label"
-              type="text"
-              value={trait.label}
-              on:change={(e) => onRename(trait.id, e)}
-            />
-            <input
-              class="weight"
-              type="number"
-              min="0"
-              step="0.1"
-              placeholder={`${$parameters.traitTypeWeights[type]}`}
-              value={trait.weight ?? ''}
-              on:input={(e) => onTraitWeight(trait.id, e)}
-              title="Poids (surcharge). Vide = hérite du poids du type."
-            />
-            <button
-              type="button"
-              class="del"
-              title="Supprimer (n'affecte que les tirages futurs)"
-              on:click={() => catRemoveTrait(trait.id)}>✕</button
-            >
-          </li>
-        {/each}
-      </ul>
-
-      <div class="add">
-        <input
-          type="text"
-          placeholder="Nouveau trait…"
-          bind:value={draft[type]}
-          on:keydown={(e) => e.key === 'Enter' && addTrait(type)}
-        />
-        <button type="button" on:click={() => addTrait(type)}>+ Ajouter</button>
-      </div>
-    </details>
-  {/each}
+    <div class="add">
+      <input
+        type="text"
+        placeholder="Nouveau trait…"
+        bind:value={draft[selectedType]}
+        on:keydown={(e) => e.key === 'Enter' && addTrait(selectedType)}
+      />
+      <button type="button" on:click={() => addTrait(selectedType)}>+ Ajouter</button>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -145,25 +155,22 @@
     font-size: 0.8rem;
     line-height: 1.4;
   }
+  .type-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--fg);
+  }
+  .type-picker select {
+    font-size: 0.9rem;
+    padding: 0.3rem 0.4rem;
+  }
   .type {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 0.4rem 0.7rem 0.7rem;
-  }
-  summary {
-    cursor: pointer;
-    font-weight: 600;
-    color: var(--fg);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .count {
-    font-size: 0.72rem;
-    color: var(--fg-muted);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 0 0.45rem;
   }
   .type-head {
     display: flex;
