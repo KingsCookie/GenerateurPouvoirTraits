@@ -5,7 +5,15 @@ import globals from 'globals';
 
 export default tseslint.config(
   {
-    ignores: ['dist/', 'node_modules/', 'dev-dist/', '*.config.js', '*.config.ts'],
+    ignores: [
+      'dist/',
+      'node_modules/',
+      'dev-dist/',
+      '*.config.js',
+      '*.config.ts',
+      // Dossier de handoff design (prototypes HTML + runtime d'outil) : hors périmètre lint.
+      'design_handoff_refonte_mobile_1a/',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

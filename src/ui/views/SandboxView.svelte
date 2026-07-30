@@ -49,13 +49,19 @@
     setSbPageSize,
     sbSort,
     cycleSort,
+    isMobile,
     type PageSize,
     type ListSort,
   } from '../stores/ui.js';
-  import type { SortKey } from '../../core/index.js';
+  import { yearOf, type SortKey } from '../../core/index.js';
   import FilterBar from '../components/FilterBar.svelte';
   import Paginator from '../components/Paginator.svelte';
   import SandboxPersonForm from '../components/SandboxPersonForm.svelte';
+  import MobileSheet from '../components/MobileSheet.svelte';
+
+  // Feuille d'actions d'une ligne (mobile, Feature 013) : Éditer / Cloner / Régénérer / Supprimer.
+  let actionRowId: string | null = null;
+  $: actionRowName = actionRowId ? (nameById.get(actionRowId) ?? actionRowId) : '';
 
   $: view = $sandboxView;
   // Année de la genèse de la sandbox (§6.2, Feature 011) : origine du calcul de génération.
@@ -143,6 +149,11 @@
   function nom(id: string): string {
     return nameById.get(id) ?? id;
   }
+  // Exécute une action de ligne (feuille mobile) puis referme la feuille.
+  function rowAction(fn: (id: string) => void): void {
+    if (actionRowId) fn(actionRowId);
+    actionRowId = null;
+  }
 </script>
 
 {#if !$sandboxState}
@@ -150,16 +161,32 @@
 {:else}
   <section>
     <!-- Barre d'actions commune -->
-    <div class="bar">
-      <div class="bar-left">
-        <span class="badge-accent">Bac à sable · copie isolée</span>
+    {#if $isMobile}
+      <div class="bar mbar">
+        <span class="badge-accent">Bac à sable</span>
+        <div class="mbar-actions">
+          <button type="button" class="m-icon" on:click={resetSandbox} aria-label="Réinitialiser"
+            >↺</button
+          >
+          <button type="button" class="m-icon" on:click={exitSandbox} aria-label="Quitter">✕</button
+          >
+          <button type="button" class="primary make-real" on:click={makeItReal}
+            >✔ Make it real</button
+          >
+        </div>
       </div>
-      <div class="actions">
-        <button type="button" class="primary" on:click={makeItReal}>✔ Make it real</button>
-        <button type="button" class="contour" on:click={resetSandbox}>↺ Reset</button>
-        <button type="button" class="contour" on:click={exitSandbox}>✕ Quitter</button>
+    {:else}
+      <div class="bar">
+        <div class="bar-left">
+          <span class="badge-accent">Bac à sable · copie isolée</span>
+        </div>
+        <div class="actions">
+          <button type="button" class="primary" on:click={makeItReal}>✔ Make it real</button>
+          <button type="button" class="contour" on:click={resetSandbox}>↺ Reset</button>
+          <button type="button" class="contour" on:click={exitSandbox}>✕ Quitter</button>
+        </div>
       </div>
-    </div>
+    {/if}
 
     <!-- Lentille temporelle commune : champ + curseur synchronisés (FR-018) -->
     <div class="lens">
@@ -254,6 +281,58 @@
 
       {#if rows.length === 0}
         <p class="empty">Aucun individu ne correspond aux filtres.</p>
+      {:else if $isMobile}
+        <!-- ===== Sandbox mobile : lignes (plus de table, Feature 013) ===== -->
+        <ul class="sb-mlist">
+          {#each pageInfo.pageItems as row (row.id)}
+            <li class="sb-mrow" class:selected={$reproSelected.has(row.id)}>
+              {#if $reproMode}
+                <input
+                  type="checkbox"
+                  class="sb-check"
+                  checked={$reproSelected.has(row.id)}
+                  on:change={() => toggleReproSelect(row.id)}
+                  aria-label={`Sélectionner ${row.nom}`}
+                />
+              {/if}
+              <div class="sb-mtext">
+                <span class="sb-mname"
+                  >{row.nom}{#if !row.vivant}<span class="dead" title="décédé"> †</span>{/if}</span
+                >
+                <span class="sb-mmeta" class:sel={$reproMode && $reproSelected.has(row.id)}>
+                  {#if $reproMode && $reproSelected.has(row.id)}sélectionné ·
+                  {/if}an {yearOf(row.dateNaissance)} · {row.age} ans
+                </span>
+              </div>
+              {#if !$reproMode}
+                <button
+                  type="button"
+                  class="m-dots"
+                  on:click={() => (actionRowId = row.id)}
+                  aria-label={`Actions pour ${row.nom}`}>⋯</button
+                >
+              {/if}
+            </li>
+          {/each}
+        </ul>
+        {#if pageInfo.nbPages > 1}
+          <div class="marrows">
+            <button
+              type="button"
+              class="arrow"
+              disabled={pageInfo.page <= 1}
+              aria-label="Page précédente"
+              on:click={() => sbPage.set(pageInfo.page - 1)}>‹</button
+            >
+            <button
+              type="button"
+              class="arrow"
+              disabled={pageInfo.page >= pageInfo.nbPages}
+              aria-label="Page suivante"
+              on:click={() => sbPage.set(pageInfo.page + 1)}>›</button
+            >
+          </div>
+        {/if}
       {:else}
         <Paginator
           pageSize={$sbPageSize}
@@ -404,6 +483,23 @@
       year={$sandboxYear}
       onClose={() => (formOpen = false)}
     />
+  {/if}
+
+  {#if actionRowId}
+    <MobileSheet title={actionRowName} onClose={() => (actionRowId = null)}>
+      <button type="button" class="sheet-row contour" on:click={() => rowAction(openEdit)}
+        >Éditer</button
+      >
+      <button type="button" class="sheet-row contour" on:click={() => rowAction(sbClonePerson)}
+        >Cloner</button
+      >
+      <button type="button" class="sheet-row contour" on:click={() => rowAction(sbRegeneratePowers)}
+        >Régénérer les pouvoirs</button
+      >
+      <button type="button" class="sheet-row danger" on:click={() => rowAction(sbDeletePerson)}
+        >Supprimer</button
+      >
+    </MobileSheet>
   {/if}
 {/if}
 
@@ -599,5 +695,186 @@
   }
   .empty {
     color: var(--fg-muted);
+  }
+
+  /* ===== Sandbox mobile (Feature 013) ===== */
+  .mbar {
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0;
+    padding: 10px 12px;
+    background: var(--tint-bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .mbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .mbar .m-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-elev);
+    color: var(--accent-text);
+    font-size: 15px;
+  }
+  .make-real {
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  .sb-mlist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .sb-mrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--row-border);
+  }
+  .sb-mrow.selected {
+    background: color-mix(in srgb, var(--accent) 24%, var(--bg-elev));
+    box-shadow: inset 3px 0 0 0 var(--accent);
+  }
+  .sb-check {
+    width: 20px;
+    height: 20px;
+    flex: none;
+    accent-color: var(--accent);
+  }
+  .sb-mtext {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sb-mname {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .sb-mmeta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--fg-faint);
+  }
+  .sb-mmeta.sel {
+    color: var(--accent-text);
+  }
+  .m-dots {
+    width: 32px;
+    height: 32px;
+    flex: none;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--fg-muted);
+    font-size: 16px;
+  }
+  .marrows {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px;
+  }
+  .marrows .arrow {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: var(--radius);
+    font-size: 20px;
+    line-height: 1;
+  }
+  .marrows .arrow:disabled {
+    opacity: 0.35;
+  }
+  .sheet-row {
+    width: 100%;
+    justify-content: flex-start;
+    min-height: 48px;
+    font-size: 15px;
+  }
+  @media (max-width: 760px) {
+    .lens {
+      flex-wrap: wrap;
+      margin: 0;
+      padding: 10px 12px;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      border-radius: 0;
+      background: var(--tint-bg);
+    }
+    .year-range {
+      flex: 1 1 100%;
+      order: 3;
+    }
+    .tabs {
+      gap: 6px;
+      border-bottom: 1px solid var(--border);
+      padding: 8px 12px 0;
+    }
+    .tab {
+      flex: 1;
+      min-height: 38px;
+      padding: 8px;
+      text-align: center;
+      border: 1px solid var(--border);
+      border-radius: var(--chip-radius);
+    }
+    .tab.active {
+      background: color-mix(in srgb, var(--accent) 30%, var(--bg-elev));
+      border-color: var(--accent);
+      color: var(--accent-text);
+    }
+    .repro {
+      flex-direction: column;
+      align-items: stretch;
+      margin: 12px;
+    }
+    .repro .primary,
+    .repro .contour {
+      width: 100%;
+      min-height: 44px;
+    }
+    .repro.mode label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .form-couple {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 12px;
+    }
+    .form-couple label {
+      width: 100%;
+    }
+    .form-couple select {
+      width: 100%;
+      min-height: 44px;
+    }
+    .couple-list {
+      padding: 0 12px 12px;
+    }
+    .couple-list li {
+      flex-direction: column;
+      align-items: stretch;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px;
+    }
   }
 </style>

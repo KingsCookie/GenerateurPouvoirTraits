@@ -226,6 +226,12 @@
     cursor: grab;
     user-select: none;
   }
+  /* Mobile (Feature 013) : viewport un peu plus haut (l'arbre n'apparaît qu'en page dédiée). */
+  @media (max-width: 760px) {
+    .viewport {
+      height: clamp(20rem, 62vh, 34rem);
+    }
+  }
   .canvas {
     position: absolute;
     top: 0;

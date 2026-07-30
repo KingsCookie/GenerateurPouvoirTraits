@@ -148,9 +148,9 @@
       <tbody>
         {#each TRAIT_TYPES as type (type)}
           <tr>
-            <td class="type-name">{TYPE_LABELS[type]}</td>
+            <td class="type-name" data-label="Type">{TYPE_LABELS[type]}</td>
             {#each FIELDS as f (f.key)}
-              <td>
+              <td data-label={`${f.label} (%)`}>
                 <input
                   type="number"
                   min="0"
@@ -161,7 +161,7 @@
                 />
               </td>
             {/each}
-            <td>
+            <td class="propagate-cell">
               <button
                 type="button"
                 class="propagate"
@@ -333,5 +333,73 @@
     color: var(--danger, #c0392b);
     font-size: 0.8rem;
     margin: 0;
+  }
+
+  /* ===== Mobile (Feature 013, BUG-001) : la table « Par type » ne doit pas déborder =====
+     Sous 760 px, la table passe en cartes empilées (une carte par type) ; le sélecteur et les
+     champs prennent la largeur disponible. Aucune valeur en dur : tokens uniquement. */
+  @media (max-width: 760px) {
+    /* Sélecteur « Par trait » : ne plus imposer 14rem (débordement sur petit écran). */
+    .field.select select {
+      min-width: 0;
+      width: 100%;
+    }
+    .field input {
+      width: 100%;
+    }
+
+    /* Table « Par type de trait » → cartes à lignes. */
+    table,
+    thead,
+    tbody,
+    tr,
+    td {
+      display: block;
+      width: 100%;
+    }
+    thead {
+      /* en-têtes de colonnes remplacés par les libellés en ligne (data-label) */
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+    tbody tr {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.4rem 0.6rem;
+      margin-bottom: 0.5rem;
+    }
+    td {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+      padding: 0.25rem 0;
+    }
+    td::before {
+      content: attr(data-label);
+      color: var(--fg-muted);
+      font-size: 0.78rem;
+    }
+    td.type-name {
+      font-weight: 700;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.35rem;
+      margin-bottom: 0.25rem;
+    }
+    td input {
+      width: 5rem;
+      text-align: right;
+    }
+    td.propagate-cell {
+      justify-content: flex-end;
+    }
+    td.propagate-cell::before {
+      content: none;
+    }
   }
 </style>

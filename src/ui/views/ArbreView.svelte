@@ -163,4 +163,34 @@
   .muted {
     color: var(--fg-muted);
   }
+
+  /* ===== Arbre mobile (Feature 013) : contrôles en 2 rangées de segments ===== */
+  @media (max-width: 760px) {
+    .controls {
+      gap: 10px;
+      padding: 10px 12px 0;
+    }
+    .ctrl-group {
+      width: 100%;
+    }
+    .ctrl-group .segments {
+      display: flex;
+      width: 100%;
+    }
+    .ctrl-group .seg {
+      flex: 1;
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .back {
+      min-height: 40px;
+    }
+    .depth-n {
+      flex: 1;
+      min-height: 40px;
+      width: auto;
+    }
+  }
 </style>

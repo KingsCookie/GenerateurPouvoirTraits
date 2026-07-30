@@ -13,11 +13,22 @@
     goToArbre,
   } from '../stores/appState.js';
   import { buildFicheView } from '../lib/ficheViewModel.js';
-  import { buildGenealogyTree } from '../../core/index.js';
-  import { traitMode } from '../stores/ui.js';
+  import { buildGenealogyTree, yearOf } from '../../core/index.js';
+  import { traitMode, isMobile } from '../stores/ui.js';
   import GenealogyTree from '../components/GenealogyTree.svelte';
   import TraitModeSelector from '../components/TraitModeSelector.svelte';
   import TreeLegend from '../components/TreeLegend.svelte';
+  import MobileSheet from '../components/MobileSheet.svelte';
+
+  // Feuille de confirmation « Tuer… » (mobile).
+  let killSheetOpen = false;
+  // Barre de mesure P/M (mobile) : % de remplissage (plafonné visuellement) + dépassement de barème.
+  function barPct(v: number): number {
+    return Math.max(0, Math.min(100, (v / 10) * 100));
+  }
+  function isOver(v: number): boolean {
+    return v > 10;
+  }
 
   // Réactif au catalogue éditable (Feature 5) : un trait renommé/supprimé se reflète aussitôt.
   // `population` résout les noms des enfants (FR-015).
@@ -50,7 +61,10 @@
     if (!$selectedPerson) return;
     const err = killPerson($selectedPerson.id, cause);
     killError = err;
-    if (!err) cause = '';
+    if (!err) {
+      cause = '';
+      killSheetOpen = false;
+    }
   }
 
   // Édition du % de reproduction du couple (vide ⇒ hérité de la gaussienne).
@@ -61,12 +75,196 @@
   }
 </script>
 
-<section>
-  <button type="button" class="back contour" on:click={backToList}>← Retour à la liste</button>
-
+<section class:mobile={$isMobile}>
   {#if !fiche}
+    <button type="button" class="back contour" on:click={backToList}>← Retour à la liste</button>
     <p class="muted">Aucun individu sélectionné.</p>
+  {:else if $isMobile}
+    <!-- ===== Fiche mobile (Feature 013) : identité d'abord, arbre en entrée ===== -->
+    <div class="m-titlebar">
+      <button type="button" class="m-icon" on:click={backToList} aria-label="Retour à la liste"
+        >←</button
+      >
+      <h2 class="m-name">{fiche.nom}</h2>
+    </div>
+
+    <div class="m-body">
+      <div class="m-status">
+        <span class="chip statut" class:dead={!fiche.vivant}>
+          {fiche.vivant ? 'Vivant' : 'Décédé'}
+        </span>
+        <span class="sub"
+          >{fiche.especeId} · {fiche.genreId} · g{fiche.generation} · an {yearOf(
+            fiche.dateNaissance,
+          )} · {fiche.age} ans</span
+        >
+      </div>
+
+      <div class="m-tiles">
+        <div class="tile">
+          <span class="tlabel">pouvoirs</span><span class="tval">{fiche.pouvoirs.length}</span>
+        </div>
+        <div class="tile">
+          <span class="tlabel">traits actifs</span><span class="tval"
+            >{fiche.traitsActifs.length}</span
+          >
+        </div>
+      </div>
+
+      {#if fiche.pouvoirs.length === 0}
+        <p class="muted">Aucun pouvoir.</p>
+      {:else}
+        {#each fiche.pouvoirs as pv (pv.label)}
+          <div class="card pouvoir">
+            <div class="pouvoir-head">
+              <strong>{pv.label}</strong>
+              <span class="badge-accent">{pv.template}</span>
+            </div>
+            {#each [{ lab: 'puissance', v: pv.puissance }, { lab: 'maîtrise', v: pv.maitrise }] as m (m.lab)}
+              <div class="meter-row">
+                <span class="mlabel">{m.lab}</span>
+                <span
+                  class="track"
+                  role="meter"
+                  aria-valuenow={m.v}
+                  aria-valuemin="0"
+                  aria-valuemax="10"
+                  aria-label={`${m.lab} ${m.v} sur 10${isOver(m.v) ? ' (hors barème)' : ''}`}
+                >
+                  <span class="fill" class:over={isOver(m.v)} style="width:{barPct(m.v)}%"></span>
+                  {#if isOver(m.v)}<span class="cap" aria-hidden="true"></span>{/if}
+                </span>
+                <span class="mval" class:over={isOver(m.v)}
+                  >{m.v}<span class="slash">/10</span></span
+                >
+              </div>
+            {/each}
+          </div>
+        {/each}
+      {/if}
+
+      <button
+        type="button"
+        class="m-arbre"
+        on:click={() => $selectedPerson && goToArbre($selectedPerson.id)}
+      >
+        <span class="m-arbre-txt">
+          <span class="m-arbre-title">Arbre généalogique</span>
+          <span class="m-arbre-sub">{fiche.enfants.length} enfant(s) · profondeur 2</span>
+        </span>
+        <span class="m-vignette" aria-hidden="true"><i></i><i class="mid"></i><i></i></span>
+        <span class="chev" aria-hidden="true">›</span>
+      </button>
+
+      <div class="traits-head">
+        <span class="field-label">Traits &amp; ADN</span>
+        <TraitModeSelector />
+      </div>
+      {#if $traitMode >= 2}
+        <h4>Traits actifs</h4>
+        {#if fiche.traitsActifs.length === 0}
+          <p class="muted">Aucun trait actif.</p>
+        {:else}
+          <ul class="traits">
+            {#each fiche.traitsActifs as t (t.traitId)}
+              <li>
+                {t.label}
+                {#if t.type}<span class="type-tag">{t.type}</span>{/if}
+                {#if $traitMode >= 3}<span class="muted"> — résilience {t.resilience} %</span>{/if}
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      {/if}
+      {#if $traitMode >= 3}
+        <h4>Traits inactifs</h4>
+        {#if fiche.traitsInactifs.length === 0}
+          <p class="muted">Aucun trait inactif.</p>
+        {:else}
+          <ul class="traits inactifs">
+            {#each fiche.traitsInactifs as t (t.traitId)}
+              <li>
+                {t.label}
+                {#if t.type}<span class="type-tag">{t.type}</span>{/if}
+                <span class="muted"> — résilience {t.resilience} %</span>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      {/if}
+
+      <div class="m-infos">
+        <div class="irow">
+          <span class="ilabel">identifiant</span><span class="ival mono">{fiche.id}</span>
+        </div>
+        {#if $selectedPerson && $selectedPerson.conjoints.length > 0}
+          {#each $selectedPerson.conjoints as c (c.id + c.statut)}
+            <div class="irow">
+              <span class="ilabel">conjoint</span>
+              <span class="ival"
+                >{nameById.get(c.id) ?? c.id}
+                <span class="badge-statut {c.statut}"
+                  >{c.statut === 'actuel' ? 'actuel' : 'ex'}</span
+                ></span
+              >
+            </div>
+          {/each}
+        {/if}
+        {#if fiche.enfants.length > 0}
+          <div class="irow">
+            <span class="ilabel">enfants</span>
+            <span class="ival enfants">
+              {#each fiche.enfants as enfant (enfant.id)}
+                <button type="button" class="child-link" on:click={() => selectPerson(enfant.id)}
+                  >{enfant.nom}</button
+                >
+              {/each}
+            </span>
+          </div>
+        {/if}
+        {#if couple}
+          <div class="irow">
+            <span class="ilabel">% reproduction du couple</span>
+            <input
+              class="ival repro"
+              type="number"
+              min="0"
+              max="100"
+              placeholder="auto"
+              value={couple.reproPct ?? ''}
+              on:change={onReproPct}
+            />
+          </div>
+        {/if}
+      </div>
+    </div>
+
+    <div class="m-actionbar">
+      <button
+        type="button"
+        class="contour explore"
+        on:click={() => $selectedPerson && goToArbre($selectedPerson.id)}>Explorer l'arbre</button
+      >
+      {#if fiche.vivant}
+        <button type="button" class="danger" on:click={() => (killSheetOpen = true)}>Tuer…</button>
+      {/if}
+    </div>
+
+    {#if killSheetOpen}
+      <MobileSheet title="Confirmer le décès" onClose={() => (killSheetOpen = false)}>
+        <label class="m-field">
+          <span class="m-label">Cause du décès</span>
+          <input type="text" bind:value={cause} placeholder="cause obligatoire" />
+        </label>
+        {#if killError}<p class="error-msg" role="alert">{killError}</p>{/if}
+        <button slot="footer" type="button" class="danger confirm-kill" on:click={onKill}>
+          Confirmer le décès
+        </button>
+      </MobileSheet>
+    {/if}
   {:else}
+    <button type="button" class="back contour" on:click={backToList}>← Retour à la liste</button>
+
     <!-- Arbre généalogique en haut, pleine largeur (FR-002c). Clic = ouvrir la fiche cliquée. -->
     {#if tree}
       <div class="card arbre-zone">
@@ -437,9 +635,249 @@
   .muted {
     color: var(--fg-muted);
   }
-  @media (max-width: 720px) {
+  @media (max-width: 760px) {
     .cols {
       grid-template-columns: 1fr;
     }
+  }
+
+  /* ===== Fiche mobile (Feature 013) ===== */
+  .m-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .m-icon {
+    width: 36px;
+    height: 36px;
+    flex: none;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-elev);
+    color: var(--accent-text);
+    font-size: 16px;
+  }
+  .m-name {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .m-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+  .m-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .m-tiles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .m-tiles .tile {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .tlabel {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--fg-faint);
+  }
+  .tval {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--accent-text);
+  }
+  .meter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .mlabel {
+    flex: none;
+    width: 74px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--fg-faint);
+  }
+  .track {
+    position: relative;
+    flex: 1;
+    height: 8px;
+    border-radius: var(--chip-radius);
+    background: var(--row-border);
+    display: block;
+  }
+  .fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    height: 100%;
+    border-radius: var(--chip-radius);
+    background: var(--accent);
+  }
+  .fill.over {
+    width: 100% !important;
+    background: repeating-linear-gradient(
+      115deg,
+      color-mix(in srgb, var(--accent) 45%, #fff) 0 3px,
+      var(--accent) 3px 9px
+    );
+    box-shadow:
+      var(--year-shadow),
+      inset 0 0 0 1px var(--accent-text);
+  }
+  .cap {
+    position: absolute;
+    right: -1px;
+    top: -4px;
+    bottom: -4px;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--fg);
+  }
+  .mval {
+    flex: none;
+    width: 58px;
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent-text);
+  }
+  .mval.over {
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .mval .slash {
+    font-size: 11px;
+    color: var(--fg-faint);
+  }
+  .m-arbre {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    min-height: 48px;
+  }
+  .m-arbre-txt {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .m-arbre-title {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .m-arbre-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--fg-muted);
+  }
+  .m-vignette {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .m-vignette i {
+    display: block;
+    width: 12px;
+    height: 14px;
+    background: var(--row-border);
+    border-radius: 2px;
+  }
+  .m-vignette i.mid {
+    height: 20px;
+    border: 1px solid var(--accent);
+    background: var(--chip-bg);
+  }
+  .m-infos {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .irow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--row-border);
+  }
+  .irow:last-child {
+    border-bottom: none;
+  }
+  .ilabel {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: var(--label-transform);
+    color: var(--fg-faint);
+  }
+  .ival {
+    font-size: 13px;
+    text-align: right;
+  }
+  .ival.enfants {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+  .child-link {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--accent-text);
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .ival.repro {
+    width: 96px;
+  }
+  .m-actionbar {
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+  }
+  .m-actionbar .explore {
+    flex: 1;
+    min-height: 44px;
+  }
+  .m-actionbar .danger {
+    min-height: 44px;
+  }
+  .confirm-kill {
+    width: 100%;
+    min-height: 48px;
   }
 </style>

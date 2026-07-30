@@ -11,6 +11,7 @@
   import ThemeControls from './components/ThemeControls.svelte';
   import AppFooter from './components/AppFooter.svelte';
   import ScrollToTop from './components/ScrollToTop.svelte';
+  import { isMobile } from './stores/ui.js';
 
   // À l'ouverture d'une fiche (ou de la page arbre), remettre le défilement en haut (FR-011).
   $: scrollTopOnView($currentView);
@@ -26,10 +27,16 @@
     $currentView === 'liste' || $currentView === 'fiche' || $currentView === 'arbre';
 </script>
 
-<header class="app-header">
+<header class="app-header" class:mobile={$isMobile}>
   <div class="brand">
     <span class="logo" aria-hidden="true">P</span>
     <span class="title">Générateur de Pouvoir</span>
+    {#if $isMobile}
+      <div class="header-actions">
+        <StateIO variant="icons" />
+        <ThemeControls variant="toggle" />
+      </div>
+    {/if}
   </div>
   <nav aria-label="Navigation principale">
     <button
@@ -58,14 +65,18 @@
     >
       Sandbox
     </button>
-    <span class="sep" aria-hidden="true"></span>
-    <ThemeControls variant="toggle" />
+    {#if !$isMobile}
+      <span class="sep" aria-hidden="true"></span>
+      <ThemeControls variant="toggle" />
+    {/if}
   </nav>
 </header>
 
-<div class="io-bar">
-  <StateIO />
-</div>
+{#if !$isMobile}
+  <div class="io-bar">
+    <StateIO />
+  </div>
+{/if}
 
 <main>
   {#if $currentView === 'parametres'}
@@ -147,5 +158,52 @@
     padding: 12px 2px;
     margin: 0 0 1rem;
     /* déborde légèrement pour occuper la largeur sous l'en-tête collant */
+  }
+
+  /* ===== Chrome mobile (Feature 013) — en-tête 2 rangées, nav segmentée ===== */
+  .app-header.mobile {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+  }
+  .app-header.mobile .brand {
+    padding: 10px 12px 0;
+    gap: 8px;
+  }
+  .app-header.mobile .title {
+    flex: 1;
+    min-width: 0;
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .app-header.mobile .logo {
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+  }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .app-header.mobile nav {
+    padding: 10px 12px;
+    gap: 6px;
+    flex-wrap: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+  .app-header.mobile .nav-item {
+    flex: 1;
+    min-height: 38px;
+    padding: 7px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 14px;
   }
 </style>

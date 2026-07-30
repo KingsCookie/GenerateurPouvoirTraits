@@ -15,6 +15,7 @@
     setListePageSize,
     listeSort,
     cycleSort,
+    isMobile,
     type PageSize,
     type ListSort,
   } from '../stores/ui.js';
@@ -22,6 +23,7 @@
     filterPopulation,
     lastGeneration,
     sortPopulation,
+    yearOf,
     type SortKey,
   } from '../../core/index.js';
 
@@ -75,13 +77,68 @@
     <TimeBar />
     <FilterBar list="population" />
 
-    <div class="results-head">
-      <h2>Population</h2>
-      <span class="count">{rows.length} / {$population.length} individu(s)</span>
-    </div>
+    {#if !$isMobile}
+      <div class="results-head">
+        <h2>Population</h2>
+        <span class="count">{rows.length} / {$population.length} individu(s)</span>
+      </div>
+    {/if}
 
     {#if rows.length === 0}
       <p class="empty">Aucun individu ne correspond aux filtres.</p>
+    {:else if $isMobile}
+      <!-- ===== Population mobile : lignes flex (Feature 013) ===== -->
+      <div class="mresults">
+        <span>{rows.length} / {$population.length} individus</span>
+        <span>{pageInfo.from}–{pageInfo.to} · page {pageInfo.page}/{pageInfo.nbPages}</span>
+      </div>
+      <ul class="mlist">
+        {#each pageInfo.pageItems as row (row.id)}
+          <li>
+            <button type="button" class="mrow" on:click={() => selectPerson(row.id)}>
+              <span class="mcol">
+                <span class="mname">
+                  {row.nom}{#if !row.vivant}<span class="dead" title="décédé">†</span>{/if}
+                </span>
+                <span class="mmeta"
+                  >an {yearOf(row.dateNaissance)} · {row.age} ans · {row.especeId} · g{row.generation}</span
+                >
+                <span class="mpowers">
+                  {#if row.pouvoirs.length === 0}
+                    <span class="muted">aucun pouvoir</span>
+                  {:else}
+                    {#each row.pouvoirs as pouvoir}
+                      <span class="chip"
+                        >{pouvoir.label}
+                        <span class="pm">{pouvoir.puissance}/{pouvoir.maitrise}</span></span
+                      >
+                    {/each}
+                  {/if}
+                </span>
+              </span>
+              <span class="chev" aria-hidden="true">›</span>
+            </button>
+          </li>
+        {/each}
+      </ul>
+      {#if pageInfo.nbPages > 1}
+        <div class="marrows">
+          <button
+            type="button"
+            class="arrow"
+            disabled={pageInfo.page <= 1}
+            aria-label="Page précédente"
+            on:click={() => listePage.set(pageInfo.page - 1)}>‹</button
+          >
+          <button
+            type="button"
+            class="arrow"
+            disabled={pageInfo.page >= pageInfo.nbPages}
+            aria-label="Page suivante"
+            on:click={() => listePage.set(pageInfo.page + 1)}>›</button
+          >
+        </div>
+      {/if}
     {:else}
       <Paginator
         pageSize={$listePageSize}
@@ -253,12 +310,83 @@
   .empty {
     color: var(--fg-muted);
   }
-  @media (max-width: 640px) {
-    .thead {
-      display: none;
-    }
-    .trow {
-      grid-template-columns: 1fr 1fr;
-    }
+
+  /* ===== Population mobile (Feature 013, seuil 760) ===== */
+  .mresults {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 9px 12px 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--fg-faint);
+  }
+  .mlist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .mrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: none;
+    border-bottom: 1px solid var(--row-border);
+    border-radius: 0;
+    background: transparent;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+  }
+  .mrow:hover,
+  .mrow:focus-visible {
+    background: var(--hover-bg);
+  }
+  .mcol {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .mname {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .mmeta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--fg-faint);
+  }
+  .mpowers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 2px;
+  }
+  .chev {
+    flex: none;
+    font-size: 16px;
+    color: var(--fg-faint);
+  }
+  .marrows {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px;
+  }
+  .marrows .arrow {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: var(--radius);
+    font-size: 20px;
+    line-height: 1;
+  }
+  .marrows .arrow:disabled {
+    opacity: 0.35;
   }
 </style>
