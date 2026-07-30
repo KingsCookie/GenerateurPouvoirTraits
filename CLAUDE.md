@@ -1,23 +1,29 @@
 <!-- SPECKIT START -->
-## Feature active : 012-reorganisation-parametres-ui
+## Feature active : 013-refonte-ui-mobile
 
-- **Plan** : `specs/012-reorganisation-parametres-ui/plan.md` (contexte technique, Constitution Check, structure)
-- **Spec** : `specs/012-reorganisation-parametres-ui/spec.md` (3 user stories, clarifications 2026-07-29)
-- **Recherche / décisions** : `specs/012-reorganisation-parametres-ui/research.md` (R1→R10 : onglets, modales, store)
-- **Modèle de données** : `specs/012-reorganisation-parametres-ui/data-model.md` (état UI `paramsTab` ; aucune entité métier)
-- **Contrats** : `specs/012-reorganisation-parametres-ui/contracts/ui-contract.md` (onglets, modales, invariants INV-1→11)
-- **Périmètre** : refonte **purement UI** de la page Paramètres, **cible v0.12.0**. Page réorganisée en
-  **2 onglets** « Principaux » (thème + graine + `batchSize` + `birthYear` + `powerChancePct`) / « Avancés »
-  (résilience initiale, `D`, `K`, tout « Hérédité & naissance », pondérations gabarits, overrides résilience),
-  onglet Principaux actif par défaut, sur le patron d'onglets de `SandboxView`. `TraitCatalogEditor` et
-  `SpeciesEditor` (+ case **consanguinité** en tête) déplacés en **modales** (patron `SandboxPersonForm` :
-  Échap/backdrop/bouton). Bouton **« Générer »** persistant hors panneaux. Store UI `paramsTab` persisté
-  `localStorage` (patron thème). **IMPÉRATIF : aucun paramètre supprimé/désactivé** (FR-001/FR-002/SC-002).
-- **Actions Constitution** : Principe IX → **aucune** maj doc (l'agencement de la page n'est pas prescrit ;
-  §8.4/§9 restent exacts). Principe IV → **zéro modif `src/core`** (tout en `src/ui`). Principe VI → `paramsTab`
-  hors export/import ; **pas de bump `FORMAT_VERSION`**. **Aucune dépendance ajoutée** ; déterminisme préservé
-  (SC-004) ; validation par checklist manuelle + 1 test unitaire pur du store d'onglet.
-- Features livrées : 11 (`specs/011-corrections-bugs-ui/`) lot de 10 corrections (consanguinité lignée directe,
+- **Plan** : `specs/013-refonte-ui-mobile/plan.md` (contexte technique, Constitution Check, structure)
+- **Spec** : `specs/013-refonte-ui-mobile/spec.md` (6 user stories, clarifications 2026-07-30)
+- **Recherche / décisions** : `specs/013-refonte-ui-mobile/research.md` (R1→R12 : seuil 760, feuilles, filtres, barres)
+- **Modèle de données** : `specs/013-refonte-ui-mobile/data-model.md` (états UI locaux non persistés ; aucune entité)
+- **Contrats** : `specs/013-refonte-ui-mobile/contracts/ui-contract.md` (contrat par écran, invariants INV-M1→14)
+- **Handoff** : `design_handoff_refonte_mobile_1a/README.md` (maquette hifi, direction **1a** validée ; 1b archivée)
+- **Périmètre** : refonte UI **mobile uniquement**, **cible v0.13.0**. Tout sous `@media (max-width: 760px)`
+  (seuil unique retenu en clarification, override du handoff qui disait 640 ; harmonise app.css 640, ListeView 640,
+  FicheView 720, StateIO 40rem → 760). Recrée les 5 écrans du handoff : chrome 2 rangées (icônes export/import +
+  toggle thème), Population en **lignes** (≥ 8 visibles, **pas de « ⋯ »**, tap = fiche), panneau **Filtres & tri**
+  plein écran (Pop.+Sandbox, `.filters` non rendu <760), Fiche **identité d'abord** (arbre = entrée, barres de
+  mesure P/M avec cas **hors-barème >10**), Paramètres en **cartes à lignes** (sous-page Apparence, éditeurs plein
+  écran), Sandbox en **lignes** (plus de table, lentille curseur, actions via « ⋯ »). Feuilles = patron
+  `SandboxPersonForm`. **CONTRAINTES ABSOLUES : desktop ≥760 inchangé (FR-002/SC-004) ; thèmes préservés, tokens
+  seule source, aucune valeur en dur (FR-003/FR-004/SC-005) ; `src/core` intact (FR-005).**
+- **Actions Constitution** : Principe IX → **aucune** maj doc (agencement responsive non prescrit). Principe IV →
+  **zéro modif `src/core`**. Principe VI → états UI locaux **non persistés**, aucun format touché. **Aucune
+  dépendance ajoutée** ; déterminisme préservé ; validation par **checklist manuelle** responsive (`npm run test`
+  + `npm run lint` restent verts).
+- Features livrées : 12 (`specs/012-reorganisation-parametres-ui/`) refonte page Paramètres : 2 onglets
+  Principaux/Avancés (store `paramsTab` persisté), éditeurs catalogues/espèces en modales, sélecteurs de type
+  (défaut Action, alphabétique) et d'espèce (défaut humain), section éditeurs en Avancés (BUG-001) — v0.12.1 ;
+  11 (`specs/011-corrections-bugs-ui/`) lot de 10 corrections (consanguinité lignée directe,
   date partagée de portée, génération 0 relative à la genèse + `genesisYear` + `FORMAT_VERSION` 3→4, étiquettes
   P/M sans « : », filtres à la ligne, export `PowerGenerator_`, aperçu pouvoir temps réel, duplication
   `min(100, résilience·D)` D défaut 0.25, bouton « Régénérer » sandbox, P/M non bornées en saisie) + fix

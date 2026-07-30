@@ -100,6 +100,22 @@ export function setStyle(s: Style): void {
 }
 
 // ===========================================================================
+// Détection mobile (session, non persistée) — Feature 013.
+//   Vrai sous le seuil unique 760 px. Pilote les VARIANTES DE RENDU conditionnées
+//   par la largeur (feuilles plein écran, non-montage de l'arbre en fiche, etc.).
+//   Purement présentationnel ; hors export/import.
+// ===========================================================================
+export const MOBILE_QUERY = '(max-width: 760px)';
+export const isMobile: Writable<boolean> = writable(
+  hasDOM ? window.matchMedia(MOBILE_QUERY).matches : false,
+);
+if (hasDOM) {
+  const mq = window.matchMedia(MOBILE_QUERY);
+  const sync = (): void => isMobile.set(mq.matches);
+  mq.addEventListener('change', sync);
+}
+
+// ===========================================================================
 // Onglet de la page Paramètres (persisté localStorage) — Feature 012.
 //   'principaux' = essentiel (apparence, seed, effectif, année, chance de pouvoir) ;
 //   'avances'    = calibration fine (hérédité, D/K, pondérations, résilience overrides).

@@ -455,10 +455,11 @@ button.contour {
   font-size: 13px;
 }
 
-/* Responsive : confort tactile et débordement maîtrisé sur petits écrans. */
-@media (max-width: 640px) {
+/* Responsive : confort tactile et débordement maîtrisé sur petits écrans.
+   Seuil unique mobile = 760 px (Feature 013). */
+@media (max-width: 760px) {
   #app {
-    padding: 0.5rem;
+    padding: 0;
   }
   button,
   input,

@@ -58,6 +58,21 @@
     max-height: 86vh;
     overflow-y: auto;
   }
+  /* Plein écran sous 760 px (Feature 013). */
+  @media (max-width: 760px) {
+    .overlay {
+      align-items: stretch;
+      padding: 0;
+    }
+    .modal {
+      max-width: none;
+      max-height: 100dvh;
+      height: 100dvh;
+      border: none;
+      border-radius: 0;
+      padding: 12px;
+    }
+  }
   .head {
     display: flex;
     align-items: center;

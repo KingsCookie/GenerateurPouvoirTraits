@@ -1,17 +1,23 @@
 <script lang="ts">
   import { parameters, regenerateSeed, setParam, generate } from '../stores/appState.js';
   import { statA, POWER_TEMPLATES, type Parameters, type PowerTemplate } from '../../core/index.js';
-  import { paramsTab, setParamsTab } from '../stores/ui.js';
+  import { paramsTab, setParamsTab, isMobile } from '../stores/ui.js';
   import ThemeControls from '../components/ThemeControls.svelte';
   import ResilienceOverrides from '../components/ResilienceOverrides.svelte';
   import CatalogueModal from '../components/CatalogueModal.svelte';
   import EspecesModal from '../components/EspecesModal.svelte';
+  import MobileSheet from '../components/MobileSheet.svelte';
+  import { mode, palette, style } from '../stores/ui.js';
 
   // Onglets « Principaux » / « Avancés » (Feature 012) : un seul panneau visible à la fois,
   // onglet actif mémorisé (store `paramsTab`, localStorage). Remplace l'ancien sommaire latéral.
   // Ouverture des éditeurs volumineux en modales (état de session local, non persisté).
   let showCatalogue = false;
   let showEspeces = false;
+  // Sous-page « Apparence » (mobile, Feature 013) — état de session non persisté.
+  let themePageOpen = false;
+  // Résumé compact du thème courant pour la ligne de navigation « Apparence ».
+  $: themeSummary = `${$style.toUpperCase()} · ${$palette} · ${$mode === 'dark' ? 'sombre' : 'clair'}`;
 
   // Clés numériques éditables des paramètres (toutes sauf A, calculée).
   type NumKey = {
@@ -73,9 +79,11 @@
         Avancés
       </button>
     </div>
-    <button class="primary generate" type="button" on:click={generate}>
-      Générer la population
-    </button>
+    {#if !$isMobile}
+      <button class="primary generate" type="button" on:click={generate}>
+        Générer la population
+      </button>
+    {/if}
   </div>
 
   <section class="params-main" aria-label="Réglages">
@@ -85,11 +93,23 @@
       <!-- Paramètres graphiques (FR-004) — 3 axes d'apparence -->
       <fieldset>
         <legend>Paramètres graphiques</legend>
-        <p class="desc">
-          Apparence de l'interface : style graphique, palette d'accent et mode clair/sombre. Vos
-          choix sont mémorisés localement et restaurés au rechargement.
-        </p>
-        <ThemeControls variant="full" />
+        {#if $isMobile}
+          <!-- Mobile : ligne de navigation vers la sous-page « Apparence » (FR-024) -->
+          <button type="button" class="nav-line" on:click={() => (themePageOpen = true)}>
+            <span class="nav-line-txt">
+              <span class="nav-line-title">Apparence</span>
+              <span class="nav-line-sub">{themeSummary}</span>
+            </span>
+            <span class="theme-dot" aria-hidden="true"></span>
+            <span class="chev" aria-hidden="true">›</span>
+          </button>
+        {:else}
+          <p class="desc">
+            Apparence de l'interface : style graphique, palette d'accent et mode clair/sombre. Vos
+            choix sont mémorisés localement et restaurés au rechargement.
+          </p>
+          <ThemeControls variant="full" />
+        {/if}
       </fieldset>
 
       <!-- Graine + population essentielle -->
@@ -433,7 +453,20 @@
       </fieldset>
     {/if}
   </section>
+
+  {#if $isMobile}
+    <!-- Barre d'action basse persistante (FR-026) -->
+    <div class="m-generate-bar">
+      <button class="primary" type="button" on:click={generate}>Générer la population</button>
+    </div>
+  {/if}
 </div>
+
+{#if $isMobile && themePageOpen}
+  <MobileSheet title="Apparence" onClose={() => (themePageOpen = false)}>
+    <ThemeControls variant="full" />
+  </MobileSheet>
+{/if}
 
 {#if showCatalogue}
   <CatalogueModal onClose={() => (showCatalogue = false)} />
@@ -570,9 +603,145 @@
   input[readonly] {
     opacity: 0.7;
   }
+
+  /* Ligne de navigation « Apparence » (mobile) + résumé thème. */
+  .nav-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 12px;
+    cursor: pointer;
+  }
+  .nav-line-txt {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .nav-line-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--fg);
+  }
+  .nav-line-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--fg-muted);
+  }
+  .theme-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 1px var(--border);
+    flex: none;
+  }
+  .nav-line .chev {
+    font-size: 16px;
+    color: var(--fg-faint);
+    flex: none;
+  }
+  .m-generate-bar {
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky;
+    bottom: 0;
+  }
+  .m-generate-bar .primary {
+    width: 100%;
+    min-height: 48px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  /* ===== Paramètres mobile : cartes à lignes (Feature 013) ===== */
   @media (max-width: 760px) {
+    .params-page {
+      gap: 0;
+    }
     .params-bar {
       position: static;
+      padding: 10px 12px;
+      gap: 6px;
+      background: var(--tint-bg);
+      border-bottom: 1px solid var(--border);
+    }
+    .tabs {
+      flex: 1;
+    }
+    .tab {
+      flex: 1;
+      min-height: 38px;
+      padding: 8px;
+      text-align: center;
+    }
+    .params-main {
+      gap: 10px;
+      padding: 12px;
+    }
+    fieldset {
+      padding: 0;
+      overflow: hidden;
+    }
+    legend {
+      padding: 12px 12px 0;
+    }
+    .grid {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+    .field {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      border-top: 1px solid var(--row-border);
+    }
+    .field label {
+      flex: 1;
+    }
+    .field .desc {
+      display: none;
+    }
+    .field input {
+      width: 96px;
+      text-align: right;
+      min-height: 44px;
+    }
+    /* Champs particuliers : graine (pile, pleine largeur) et A (garder sa règle métier). */
+    .field:has(.seed-row) {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .field:has(.seed-row) .desc,
+    .field:has(input[readonly]) .desc {
+      display: block;
+    }
+    .seed-row input {
+      text-align: left;
+      width: auto;
+    }
+    .seed-row button {
+      min-height: 44px;
+    }
+    .check {
+      margin-top: 0;
+      padding: 12px;
+      border-top: 1px solid var(--row-border);
+    }
+    .editor-actions {
+      flex-direction: column;
+      padding: 12px;
+    }
+    .editor-actions button {
+      min-height: 44px;
     }
   }
 </style>

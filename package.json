@@ -1,6 +1,6 @@
 {
   "name": "generateur-pouvoir",
-  "version": "0.12.1",
+  "version": "0.13.1",
   "private": true,
   "type": "module",
   "description": "Générateur de pouvoirs déterministe (PWA statique).",

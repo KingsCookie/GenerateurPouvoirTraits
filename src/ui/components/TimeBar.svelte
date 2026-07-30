@@ -1,26 +1,46 @@
 <script lang="ts">
   import { currentYear, advanceYears } from '../stores/appState.js';
+  import { isMobile } from '../stores/ui.js';
 
   let years = 1;
 
   function onAdvance() {
     advanceYears(years);
   }
+  function dec() {
+    if (years > 1) years -= 1;
+  }
+  function inc() {
+    years += 1;
+  }
 </script>
 
-<div class="time-bar" role="region" aria-label="Avancement du temps">
+<div class="time-bar" class:mobile={$isMobile} role="region" aria-label="Avancement du temps">
   <div class="year-block">
-    <span class="field-label">Année courante</span>
+    <span class="field-label">{$isMobile ? 'an' : 'Année courante'}</span>
     <span class="year-num">{$currentYear}</span>
   </div>
-  <div class="controls">
-    <label class="field-label" for="years">Avancer de</label>
-    <input id="years" type="number" min="1" bind:value={years} />
-    <span class="unit">an(s)</span>
-    <button class="primary" type="button" on:click={onAdvance} disabled={years < 1}>
-      Avancer
-    </button>
-  </div>
+  {#if $isMobile}
+    <div class="controls">
+      <div class="stepper">
+        <button type="button" on:click={dec} disabled={years <= 1} aria-label="Diminuer">−</button>
+        <input type="number" min="1" bind:value={years} aria-label="Nombre d'années à avancer" />
+        <button type="button" on:click={inc} aria-label="Augmenter">+</button>
+      </div>
+      <button class="primary" type="button" on:click={onAdvance} disabled={years < 1}
+        >Avancer</button
+      >
+    </div>
+  {:else}
+    <div class="controls">
+      <label class="field-label" for="years">Avancer de</label>
+      <input id="years" type="number" min="1" bind:value={years} />
+      <span class="unit">an(s)</span>
+      <button class="primary" type="button" on:click={onAdvance} disabled={years < 1}>
+        Avancer
+      </button>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -61,5 +81,67 @@
   .unit {
     color: var(--fg-muted);
     font-size: 0.85rem;
+  }
+
+  /* ===== Barre de temps compacte (mobile, Feature 013) ===== */
+  .time-bar.mobile {
+    padding: 8px 12px;
+    margin-bottom: 0;
+    background: var(--tint-bg);
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    gap: 10px;
+    flex-wrap: nowrap;
+  }
+  .time-bar.mobile .year-block {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .time-bar.mobile .year-num {
+    font-size: 22px;
+  }
+  .time-bar.mobile .controls {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .stepper {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    overflow: hidden;
+  }
+  .stepper button {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .stepper input {
+    width: 36px;
+    text-align: center;
+    border: none;
+    background: transparent;
+    font-family: var(--mono);
+    font-size: 14px;
+    /* masque les flèches natives pour laisser le stepper piloter */
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .stepper input::-webkit-outer-spin-button,
+  .stepper input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .time-bar.mobile .primary {
+    min-height: 34px;
+    padding: 6px 14px;
+    font-size: 14px;
   }
 </style>

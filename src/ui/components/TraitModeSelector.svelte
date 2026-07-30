@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { traitMode, setTraitMode, type TraitMode } from '../stores/ui.js';
+  import { traitMode, setTraitMode, isMobile, type TraitMode } from '../stores/ui.js';
 
   const MODES: { value: TraitMode; label: string; title: string }[] = [
     { value: 1, label: 'Mode 1', title: 'Pouvoirs seuls' },
@@ -8,16 +8,17 @@
   ];
 </script>
 
-<div class="modes" role="group" aria-label="Mode d'affichage des traits">
+<div class="modes" class:mobile={$isMobile} role="group" aria-label="Mode d'affichage des traits">
   {#each MODES as m (m.value)}
     <button
       type="button"
       class="nav-item"
       class:is-active={$traitMode === m.value}
       title={m.title}
+      aria-label={m.label}
       on:click={() => setTraitMode(m.value)}
     >
-      {m.label}
+      {$isMobile ? m.value : m.label}
     </button>
   {/each}
 </div>
@@ -36,4 +37,9 @@
     font-size: 13px;
   }
   /* .is-active fourni par app.css (chip en A, aplat en B). */
+  .modes.mobile .nav-item {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
 </style>
