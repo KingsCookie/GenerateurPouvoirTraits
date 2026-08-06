@@ -2,6 +2,9 @@
 // Principe IX). Les comportements pouvant sembler « incohérents » (état non repris dans certaines
 // branches, {Ka}/{Ke}/{Kp}/{Kaj} absents de certaines feuilles, etc.) sont **volontaires** : ne pas
 // « corriger ». Cette fonction est PURE et pilotée uniquement par la présence de chaque type.
+//
+// Depuis v0.15.0 : certaines feuilles produisent **deux** pouvoirs, notés `"X ; Y"` dans l'arbre.
+// `powerLabelFromSublist` renvoie donc un **tableau** de 0, 1 ou 2 gabarits résolus (types présents).
 
 /** Libellés (déjà regroupés « , … et » / « ou ») des types présents dans une sous-liste. */
 export interface SublistGroups {
@@ -14,12 +17,12 @@ export interface SublistGroups {
 }
 
 /**
- * Renvoie le **gabarit** de libellé d'une sous-liste selon la présence des types, ou `null`.
+ * Renvoie les **gabarits** de libellé d'une sous-liste selon la présence des types (0, 1 ou 2), ou `[]`.
  * Les jetons `{a} {e} {p} {aj} {r} {et}` des types présents sont substitués par leurs libellés.
  * Les jetons de génération `{Ka} {Ke} {Kp} {Kaj}` (types absents) sont **laissés littéraux** :
  * c'est l'appelant (derivePowersFromTraits) qui tente la génération `K` et les résout.
  */
-export function powerLabelFromSublist(groups: SublistGroups): string | null {
+export function powerLabelFromSublist(groups: SublistGroups): string[] {
   const a = groups.a !== undefined;
   const e = groups.e !== undefined;
   const p = groups.p !== undefined;
@@ -27,12 +30,14 @@ export function powerLabelFromSublist(groups: SublistGroups): string | null {
   const r = groups.r !== undefined;
   const et = groups.et !== undefined;
 
-  const template = treeTemplate(a, e, p, aj, r, et);
-  if (template === null) return null;
-  return fillPresent(template, groups);
+  const raw = treeTemplate(a, e, p, aj, r, et);
+  if (raw === null) return [];
+  // Une feuille peut porter deux gabarits séparés par « ; » (§6.4.2, v0.15.0).
+  return raw.split(';').map((tmpl) => fillPresent(tmpl.trim(), groups));
 }
 
-// Structure if/else EXACTE du §6.4.2 (verbatim). Renvoie le gabarit brut (jetons non substitués).
+// Structure if/else EXACTE du §6.4.2 (verbatim). Renvoie le gabarit brut (jetons non substitués),
+// éventuellement à **deux** gabarits séparés par « ; », ou `null` (feuille terminale sans pouvoir).
 function treeTemplate(
   a: boolean,
   e: boolean,
@@ -46,18 +51,20 @@ function treeTemplate(
       if (p) {
         if (r) {
           if (aj) {
-            if (et) return '{a} {e} avec {aj}, {et} sur {r} à la place de {p}';
-            else return '{a} {e} avec {aj} sur {r} à la place de {p}';
+            if (et)
+              return '{a} {e} avec {aj} {et} sur {r} à la place de {p} ; {aj} {et} sur {r} à la place de {p}';
+            else
+              return '{a} {e} avec {aj} sur {r} à la place de {p} ; {aj} sur {r} à la place de {p}';
           } else {
-            if (et) return '{a} {e} avec {r} {et} à la place de {p}';
-            else return '{a} {e} avec {r} à la place de {p}';
+            if (et) return '{a} {e} avec {r} {et} à la place de {p} ; {r} {et} à la place de {p}';
+            else return '{a} {e} avec {r} à la place de {p} ; {r} à la place de {p}';
           }
         } else {
           if (aj) {
-            if (et) return '{a} {e} avec {aj} {et} sur {p}';
-            else return '{a} {e} avec {aj} sur {p}';
+            if (et) return '{a} {e} avec {aj} {et} sur {p} ; {aj} {et} sur {p}';
+            else return '{a} {e} avec {aj} sur {p} ; {aj} sur {p}';
           } else {
-            if (et) return '{a} {e} avec {p} {et}';
+            if (et) return '{a} {e} avec {p} {et} ; {p} {et}';
             else return '{a} {e} avec {p}';
           }
         }
@@ -75,7 +82,7 @@ function treeTemplate(
             if (et) return '{a} {e} avec {aj}';
             else return '{a} {e} avec {aj}';
           } else {
-            if (et) return '{a} {e} {et}';
+            if (et) return '{a} {e} {et} ; rends {e} {et}';
             else return '{a} {e}';
           }
         }
@@ -84,11 +91,11 @@ function treeTemplate(
       if (aj) {
         if (et) {
           if (r) {
-            if (p) return '{a} {aj} {et} avec {r} à la place de {p}';
-            else return '{a} {aj} {et} sur {r}';
+            if (p) return '{a} {aj} {et} avec {r} à la place de {p} ; rends {aj} {et}';
+            else return '{a} {aj} {et} sur {r} ; rends {aj} {et}';
           } else {
-            if (p) return '{a} {aj} {et} avec {p}';
-            else return '{a} {aj} {et}';
+            if (p) return '{a} {aj} {et} avec {p} ; rends {aj} {et}';
+            else return '{a} {aj} {et} ; rends {aj} {et}';
           }
         } else {
           if (r) {
@@ -102,18 +109,18 @@ function treeTemplate(
       } else {
         if (r) {
           if (et) {
-            if (p) return '{a} {r} {et} avec {p}';
-            else return '{a} {r} {et}';
+            if (p) return '{a} {r} {et} avec {p} ; rends {r} {et}';
+            else return '{a} {r} {et} ; rends {r} {et}';
           } else {
             if (p) return '{a} {r} avec {p}';
             else return '{a} {r}';
           }
         } else {
           if (p) {
-            if (et) return '{a} {p} {et}';
+            if (et) return '{a} {p} {et} ; rends {p} {et}';
             else return '{a} {p}';
           } else {
-            if (et) return '{a} {Ke} {et}';
+            if (et) return '{a} {Ke} {et} ; rends {Ke} {et}';
             else return '{a} {Ke}';
           }
         }
@@ -162,25 +169,27 @@ function treeTemplate(
       if (e) {
         if (et) {
           if (aj) {
-            if (r) return '{Ka} {e} avec {aj} {et} sur {r} à la place de {Kp}';
-            else return '{Ka} {e} avec {aj} {et} sur {Kp}';
+            if (r)
+              return '{Ka} {e} avec {aj} {et} sur {r} à la place de {Kp} ; {aj} {et} sur {r} à la place de {Kp}';
+            else return '{Ka} {e} avec {aj} {et} sur {Kp} ; {aj} {et} sur {Kp}';
           } else {
-            if (r) return '{Ka} {e} avec {r} {et} à la place de {Kp}';
-            else return '{Ka} {e} {et}';
+            if (r) return '{Ka} {e} avec {r} {et} à la place de {Kp} ; {r} {et} à la place de {Kp}';
+            else return '{Ka} {e} {et} ; rends {e} {et}';
           }
         } else {
           if (aj) {
-            if (r) return '{Ka} {e} avec {aj} sur {r} à la place de {Kp}';
-            else return '{Ka} {e} avec {aj} sur {Kp}';
+            if (r)
+              return '{Ka} {e} avec {aj} sur {r} à la place de {Kp} ; {aj} sur {r} à la place de {Kp}';
+            else return '{Ka} {e} avec {aj} sur {Kp} ; {aj} sur {Kp}';
           } else {
-            if (r) return '{Ka} {e} avec {r} à la place de {Kp}';
+            if (r) return '{Ka} {e} avec {r} à la place de {Kp} ; {r} à la place de {Kp}';
             else return '{Ka} {e}';
           }
         }
       } else {
         if (aj) {
           if (et) {
-            if (r) return '{Ka} {aj} {et} avec {r} à la place de {Kp}';
+            if (r) return '{aj} {et} sur {r} à la place de {Kp}';
             else return '{aj} {et} sur {Kp}';
           } else {
             if (r) return '{aj} sur {r} à la place de {Kp}';
