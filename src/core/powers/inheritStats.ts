@@ -47,9 +47,17 @@ function mean(values: number[]): number {
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
-// Arrondi §7.2 : x ≥ n + 0,5 ⇒ n + 1 ; sinon n.
+// Arrondi §7.2 « demi vers le pair » (arrondi bancaire) : à l'entier le plus proche ; en cas
+// d'égalité exacte (partie décimale = 0,5), on arrondit vers l'entier PAIR le plus proche.
+// Choix symétrique autour du centre du barème : il supprime le biais vers le haut de l'ancien
+// `floor(x + 0,5)` (qui rendait les dépassements hauts, ex. 11, bien plus fréquents que les bas,
+// ex. 0). Exemples : 4,5 → 4 ; 5,5 → 6 ; 9,5 → 10 ; 0,5 → 0 ; −0,5 → 0.
 function roundMean(x: number): number {
-  return Math.floor(x + 0.5);
+  const f = Math.floor(x);
+  const d = x - f;
+  if (d < 0.5) return f;
+  if (d > 0.5) return f + 1;
+  return f % 2 === 0 ? f : f + 1;
 }
 
 /**

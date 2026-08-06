@@ -49,11 +49,17 @@ describe('§7.2 — héritage P/M : mapping i mod n', () => {
   });
 });
 
-describe('§7.2 — arrondi (x ≥ n+0,5 ⇒ n+1)', () => {
-  it('moyenne 4,5 ⇒ 5', () => {
+describe('§7.2 — arrondi « demi vers le pair » (bancaire)', () => {
+  it('moyenne 4,5 ⇒ 4 (pair le plus proche)', () => {
     const a = parent([pow(4, 4)]);
     const b = parent([pow(5, 5)]);
-    expect(inheritStats(0, [a, b], MEAN, meanRng())).toEqual({ puissance: 5, maitrise: 5 }); // 4,5→5
+    expect(inheritStats(0, [a, b], MEAN, meanRng())).toEqual({ puissance: 4, maitrise: 4 }); // 4,5→4
+  });
+
+  it('moyenne 5,5 ⇒ 6 (pair le plus proche)', () => {
+    const a = parent([pow(5, 5)]);
+    const b = parent([pow(6, 6)]);
+    expect(inheritStats(0, [a, b], MEAN, meanRng())).toEqual({ puissance: 6, maitrise: 6 }); // 5,5→6
   });
 
   it('moyenne 4,33 ⇒ 4', () => {
