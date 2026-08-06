@@ -370,9 +370,11 @@ Notations :
 
 On applique **une fois par sous-liste** l'algorithme suivant.
 
+**Pouvoirs multiples par branche (nouveau, cible v0.15.0).** Certaines feuilles de l'arbre produisent désormais **deux pouvoirs**, notés `"X" ; "Y"` (deux chaînes séparées par `;`). La sous-liste produit alors ces **deux pouvoirs distincts**, chacun recevant ses **propres** valeurs de puissance/maîtrise (§7.2). Lorsqu'une branche à deux pouvoirs comporte le **même** jeton `Kx` (p. ex. `{Kp}`) dans ses deux chaînes, celui-ci désigne le **même** trait généré : la tentative de génération `K` correspondante n'est faite **qu'une seule fois** et son résultat est **réutilisé** dans les deux pouvoirs (p. ex. un `Ka` donnant « contrôle » vaut « contrôle » dans les deux pouvoirs). Si cette tentative `K` échoue, **tout pouvoir de la branche référençant ce jeton** n'est pas produit (comme au cas mono-pouvoir ci-dessus) ; un pouvoir ne référençant **aucun** jeton `K` échoué est **quand même** produit.
+
 [NOTE]
 ====
-Arbre faisant foi, reproduit verbatim depuis `PromptDescriptionV2.md` et **validé par l'auteur**. Les comportements pouvant sembler « incohérents » (état non repris dans certaines branches `a & e & ¬p`, `{Ka}` absent de certaines feuilles `¬a & ¬p & ¬e`, etc.) sont **volontaires**.
+Arbre **révisé par l'auteur (cible v0.15.0)** : plusieurs feuilles produisent désormais **deux pouvoirs** (voir ci-dessus) et certaines formulations ont été ajustées. Les comportements pouvant sembler « incohérents » (état non repris dans certaines branches `a & e & ¬p`, `{Ka}`/`{Kp}` absents de certaines feuilles, etc.) restent **volontaires**.
 ====
 
 [source,python]
@@ -383,23 +385,23 @@ if a :
 			if r :
 				if aj :
 					if et :
-						pouvoir = "{a} {e} avec {aj}, {et} sur {r} à la place de {p}"
+						pouvoir = "{a} {e} avec {aj} {et} sur {r} à la place de {p}" ; "{aj} {et} sur {r} à la place de {p}"
 					else :
-						pouvoir = "{a} {e} avec {aj} sur {r} à la place de {p}"
+						pouvoir = "{a} {e} avec {aj} sur {r} à la place de {p}" ; "{aj} sur {r} à la place de {p}"
 				else :
 					if et :
-						pouvoir = "{a} {e} avec {r} {et} à la place de {p}"
+						pouvoir = "{a} {e} avec {r} {et} à la place de {p}" ; "{r} {et} à la place de {p}"
 					else :
-						pouvoir = "{a} {e} avec {r} à la place de {p}"
+						pouvoir = "{a} {e} avec {r} à la place de {p}" ; "{r} à la place de {p}"
 			else :
 				if aj :
 					if et :
-						pouvoir = "{a} {e} avec {aj} {et} sur {p}"
+						pouvoir = "{a} {e} avec {aj} {et} sur {p}" ; "{aj} {et} sur {p}"
 					else :
-						pouvoir = "{a} {e} avec {aj} sur {p}"
+						pouvoir = "{a} {e} avec {aj} sur {p}" ; "{aj} sur {p}"
 				else :
 					if et :
-						pouvoir = "{a} {e} avec {p} {et}"
+						pouvoir = "{a} {e} avec {p} {et}" ; "{p} {et}"
 					else :
 						pouvoir = "{a} {e} avec {p}"
 		else:
@@ -422,7 +424,7 @@ if a :
 						pouvoir = "{a} {e} avec {aj}"
 				else:
 					if et:
-						pouvoir = "{a} {e} {et}"
+						pouvoir = "{a} {e} {et}" ; "rends {e} {et}"
 					else:
 						pouvoir = "{a} {e}"
 	else:
@@ -430,14 +432,14 @@ if a :
 			if et:
 				if r:
 					if p:
-						pouvoir = "{a} {aj} {et} avec {r} à la place de {p}"
+						pouvoir = "{a} {aj} {et} avec {r} à la place de {p}" ; "rends {aj} {et}"
 					else:
-						pouvoir = "{a} {aj} {et} sur {r}"
+						pouvoir = "{a} {aj} {et} sur {r}" ; "rends {aj} {et}"
 				else:
 					if p:
-						pouvoir = "{a} {aj} {et} avec {p}"
+						pouvoir = "{a} {aj} {et} avec {p}" ; "rends {aj} {et}"
 					else:
-						pouvoir = "{a} {aj} {et}"
+						pouvoir = "{a} {aj} {et}" ; "rends {aj} {et}"
 			else:
 				if r:
 					if p:
@@ -453,9 +455,9 @@ if a :
 			if r:
 				if et:
 					if p:
-						pouvoir = "{a} {r} {et} avec {p}"
+						pouvoir = "{a} {r} {et} avec {p}" ; "rends {r} {et}"
 					else:
-						pouvoir = "{a} {r} {et}"
+						pouvoir = "{a} {r} {et}" ; "rends {r} {et}"
 				else:
 					if p:
 						pouvoir = "{a} {r} avec {p}"
@@ -464,12 +466,12 @@ if a :
 			else:
 				if p:
 					if et:
-						pouvoir = "{a} {p} {et}"
+						pouvoir = "{a} {p} {et}" ; "rends {p} {et}"
 					else:
 						pouvoir = "{a} {p}"
 				else:
 					if et:
-						pouvoir = "{a} {Ke} {et}"
+						pouvoir = "{a} {Ke} {et}" ; "rends {Ke} {et}"
 					else:
 						pouvoir = "{a} {Ke}"
 else:
@@ -525,30 +527,30 @@ else:
 			if et:
 				if aj:
 					if r:
-						pouvoir = "{Ka} {e} avec {aj} {et} sur {r} à la place de {Kp}"
+						pouvoir = "{Ka} {e} avec {aj} {et} sur {r} à la place de {Kp}" ; "{aj} {et} sur {r} à la place de {Kp}"
 					else:
-						pouvoir = "{Ka} {e} avec {aj} {et} sur {Kp}"
+						pouvoir = "{Ka} {e} avec {aj} {et} sur {Kp}" ; "{aj} {et} sur {Kp}"
 				else:
 					if r:
-						pouvoir = "{Ka} {e} avec {r} {et} à la place de {Kp}"
+						pouvoir = "{Ka} {e} avec {r} {et} à la place de {Kp}" ; "{r} {et} à la place de {Kp}"
 					else:
-						pouvoir = "{Ka} {e} {et}"
+						pouvoir = "{Ka} {e} {et}" ; "rends {e} {et}"
 			else:
 				if aj:
 					if r:
-						pouvoir = "{Ka} {e} avec {aj} sur {r} à la place de {Kp}"
+						pouvoir = "{Ka} {e} avec {aj} sur {r} à la place de {Kp}" ; "{aj} sur {r} à la place de {Kp}"
 					else:
-						pouvoir = "{Ka} {e} avec {aj} sur {Kp}"
+						pouvoir = "{Ka} {e} avec {aj} sur {Kp}" ; "{aj} sur {Kp}"
 				else:
 					if r:
-						pouvoir = "{Ka} {e} avec {r} à la place de {Kp}"
+						pouvoir = "{Ka} {e} avec {r} à la place de {Kp}" ; "{r} à la place de {Kp}"
 					else:
 						pouvoir = "{Ka} {e}"
 		else:
 			if aj:
 				if et:
 					if r:
-						pouvoir = "{Ka} {aj} {et} avec {r} à la place de {Kp}"
+						pouvoir = "{aj} {et} sur {r} à la place de {Kp}"
 					else:
 						pouvoir = "{aj} {et} sur {Kp}"
 				else:

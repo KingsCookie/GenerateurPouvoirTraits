@@ -142,8 +142,7 @@ export function derivePowersFromTraits(
 
   const pouvoirs: Pouvoir[] = [];
   for (const sublist of sublists) {
-    const pouvoir = transformSublist(sublist, working, catalog, params, rng);
-    if (pouvoir) pouvoirs.push(pouvoir);
+    pouvoirs.push(...transformSublist(sublist, working, catalog, params, rng));
   }
 
   return { pouvoirs, adn: { traits: [...working.values()] } };
@@ -156,15 +155,20 @@ function joinGroup(labels: string[], isEtat: boolean): string {
   return `${labels.slice(0, -1).join(', ')} et ${labels[labels.length - 1]}`;
 }
 
-// Transforme une sous-liste en pouvoir (§6.4.2). Renvoie null si pas de pouvoir (feuille null
-// ou échec d'une génération K requise). Inscrit les traits générés K dans `working` (ADN).
+// Résultat de résolution d'un jeton `K` : trait généré (réutilisé), ou `null` = échec du tirage.
+type KResolved = { label: string; traitId: string } | null;
+
+// Transforme une sous-liste en **0, 1 ou 2** pouvoirs (§6.4.2, v0.15.0). Une feuille peut porter deux
+// gabarits ; un même jeton `Kx` présent dans les deux est **tiré une seule fois** et réutilisé. Un
+// gabarit référençant un jeton `K` en échec ne produit pas de pouvoir ; un gabarit sans jeton `K`
+// échoué est quand même produit. Inscrit les traits générés K dans `working` (ADN), une seule fois.
 function transformSublist(
   sublist: TraitRef[],
   working: Map<string, ResilientTrait>,
   catalog: Catalog,
   params: Parameters,
   rng: Rng,
-): Pouvoir | null {
+): Pouvoir[] {
   // Regroupe par type (ordre stable des traits dans la sous-liste).
   const byType = new Map<TraitType, string[]>();
   for (const t of sublist) {
@@ -178,40 +182,70 @@ function transformSublist(
     groups[TYPE_TO_KEY[type]] = joinGroup(labels, type === 'Etat');
   }
 
-  const template = powerLabelFromSublist(groups);
-  if (template === null) return null;
+  const templates = powerLabelFromSublist(groups);
+  if (templates.length === 0) return [];
 
-  // Résout les jetons K… restants par génération (proba generationK %).
-  const traitIds = sublist.map((t) => t.traitId);
-  let label = template;
-  const kTokens = template.match(/\{(Ka|Ke|Kp|Kaj)\}/g) ?? [];
-  for (const token of kTokens) {
-    const key = token.slice(1, -1); // retire { }
-    const type = K_TOKEN_TYPE[key];
-    if (!rng.chance(params.generationK)) return null; // échec K ⇒ aucun pouvoir pour cette sous-liste
+  const baseTraitIds = sublist.map((t) => t.traitId);
 
+  // Collecte des jetons `K` **distincts** dans l'ordre de première apparition (gabarit 1 puis 2).
+  const distinctTokens: string[] = [];
+  for (const tmpl of templates) {
+    for (const token of tmpl.match(/\{(Ka|Ke|Kp|Kaj)\}/g) ?? []) {
+      if (!distinctTokens.includes(token)) distinctTokens.push(token);
+    }
+  }
+
+  // Un seul tirage par jeton distinct (partagé par les deux gabarits) — proba generationK %.
+  const resolved = new Map<string, KResolved>();
+  for (const token of distinctTokens) {
+    const type = K_TOKEN_TYPE[token.slice(1, -1)]; // retire { }
+    if (!rng.chance(params.generationK)) {
+      resolved.set(token, null);
+      continue;
+    }
     const pool = catalog.byType[type];
-    if (pool.length === 0) return null; // type vide : génération impossible
-    // Poids effectif (surcharge ?? poids du type) ; type à 0 ⇒ pas de génération ⇒ pas de pouvoir
-    // pour cette sous-liste (FR-052b). Tolérant : jamais d'exception.
+    if (pool.length === 0) {
+      resolved.set(token, null); // type vide : génération impossible
+      continue;
+    }
+    // Poids effectif (surcharge ?? poids du type) ; type à 0 ⇒ échec (FR-052b). Tolérant : jamais d'exception.
     const generated = rng.pickWeightedOrNull(pool, (t) =>
       resolveWeight(t.id, t.weight, params.traitTypeWeights),
     );
-    if (generated === null) return null;
-
+    if (generated === null) {
+      resolved.set(token, null);
+      continue;
+    }
     inscribeGenerated(generated.id, working, params);
-    if (!traitIds.includes(generated.id)) traitIds.push(generated.id);
-    label = label.replace(token, generated.label);
+    resolved.set(token, { label: generated.label, traitId: generated.id });
   }
 
-  return {
-    id: `pw:DERIVE:${traitIds.join('+')}`,
-    label,
-    template: 'DERIVE',
-    traitIds,
-    puissance: 0, // attribués ensuite par inheritStats (§7.2)
-    maitrise: 0,
-  };
+  // Construit un pouvoir par gabarit ; un gabarit référençant un jeton en échec est ignoré.
+  const pouvoirs: Pouvoir[] = [];
+  templates.forEach((tmpl, index) => {
+    const tokens = tmpl.match(/\{(Ka|Ke|Kp|Kaj)\}/g) ?? [];
+    if (tokens.some((token) => resolved.get(token) === null)) return; // échec K requis ⇒ pas de pouvoir
+
+    let label = tmpl;
+    const traitIds = [...baseTraitIds];
+    for (const token of tokens) {
+      const gen = resolved.get(token)!; // non-null ici (sinon écarté ci-dessus)
+      label = label.split(token).join(gen.label);
+      if (!traitIds.includes(gen.traitId)) traitIds.push(gen.traitId);
+    }
+
+    pouvoirs.push({
+      // id unique **par personne** ; suffixe d'index pour départager les 2 pouvoirs d'une feuille.
+      id: `pw:DERIVE:${traitIds.join('+')}#${index}`,
+      label,
+      template: 'DERIVE',
+      traitIds,
+      puissance: 0, // attribués ensuite par inheritStats (§7.2)
+      maitrise: 0,
+    });
+  });
+
+  return pouvoirs;
 }
 
 // Inscrit un trait généré K dans l'ADN : actif ; s'il existait, on le réactive + bonus (clampé).

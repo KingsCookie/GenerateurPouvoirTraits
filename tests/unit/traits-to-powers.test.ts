@@ -116,3 +116,112 @@ describe('§6.4.2 — derivePowersFromTraits', () => {
     expect(adn).toEqual(snapshot);
   });
 });
+
+// Catalogue riche pour les feuilles à deux pouvoirs (v0.15.0).
+function catStar(): Catalog {
+  return {
+    byType: {
+      Action: [{ id: 'a1', type: 'Action', label: 'courir', weight: 1 }],
+      Element: [{ id: 'e1', type: 'Element', label: 'feu', weight: 1 }],
+      PartieCorps: [{ id: 'p1', type: 'PartieCorps', label: 'bras', weight: 1 }],
+      Ajout: [{ id: 'aj1', type: 'Ajout', label: 'griffes', weight: 1 }],
+      Remplacement: [{ id: 'r1', type: 'Remplacement', label: 'lame', weight: 1 }],
+      Etat: [{ id: 'et1', type: 'Etat', label: 'gelé', weight: 1 }],
+    },
+  } as Catalog;
+}
+
+const active = (...ids: string[]): ADN => ({
+  traits: ids.map((traitId) => ({ traitId, active: true, resilience: 50 })),
+});
+
+describe('§6.4.2 — feuille à deux pouvoirs (US1, v0.15.0)', () => {
+  // Feuille a/e/et ⇒ ['{a} {e} {et}', 'rends {e} {et}'] — aucun jeton K.
+  it('T-2POWERS : produit exactement deux pouvoirs (ordre X→Y), libellés attendus', () => {
+    const res = derivePowersFromTraits(active('a1', 'e1', 'et1'), catStar(), P, fakeRng());
+    expect(res.pouvoirs).toHaveLength(2);
+    expect(res.pouvoirs.map((p) => p.label)).toEqual(['courir feu gelé', 'rends feu gelé']);
+  });
+
+  it('T-ID : les deux pouvoirs ont des id distincts (#0 / #1)', () => {
+    const res = derivePowersFromTraits(active('a1', 'e1', 'et1'), catStar(), P, fakeRng());
+    const [p0, p1] = res.pouvoirs;
+    expect(p0.id).not.toBe(p1.id);
+    expect(p0.id.endsWith('#0')).toBe(true);
+    expect(p1.id.endsWith('#1')).toBe(true);
+    expect(p0.id).toBe('pw:DERIVE:a1+e1+et1#0');
+  });
+
+  it('T-DET : même seed ⇒ résultat identique (déterminisme)', () => {
+    const a = derivePowersFromTraits(active('a1', 'e1', 'et1'), catStar(), P, fakeRng());
+    const b = derivePowersFromTraits(active('a1', 'e1', 'et1'), catStar(), P, fakeRng());
+    expect(a).toEqual(b);
+  });
+});
+
+describe('§6.4.2 — jeton Kx partagé entre deux pouvoirs (US2, v0.15.0)', () => {
+  // Feuille e/aj/et ⇒ ['{Ka} {e} avec {aj} {et} sur {Kp}', '{aj} {et} sur {Kp}'].
+  // Une seule sous-liste (ni Action ni Partie du corps) ⇒ 0 tirage de duplication.
+  // Jetons distincts, dans l'ordre : {Ka} (gabarit 1) puis {Kp} (partagé).
+  it('T-KSHARED : un seul trait « partie du corps » généré, réutilisé dans les deux pouvoirs', () => {
+    const res = derivePowersFromTraits(
+      active('e1', 'aj1', 'et1'),
+      catStar(),
+      P,
+      fakeRng({ chances: [true, true] }), // {Ka} ok, {Kp} ok
+    );
+    expect(res.pouvoirs).toHaveLength(2);
+    expect(res.pouvoirs[0].label).toBe('courir feu avec griffes gelé sur bras');
+    expect(res.pouvoirs[1].label).toBe('griffes gelé sur bras');
+    // Le {Kp} partagé = « bras » (p1) dans les deux ; inscrit UNE seule fois dans l'ADN.
+    expect(res.pouvoirs.every((p) => p.label.includes('bras'))).toBe(true);
+    expect(res.adn.traits.filter((t) => t.traitId === 'p1')).toHaveLength(1);
+    expect(res.adn.traits.find((t) => t.traitId === 'p1')?.active).toBe(true);
+  });
+
+  it('T-TRAITIDS : traitIds par pouvoir (le 2ᵉ ne contient pas l’action générée du 1ᵉʳ)', () => {
+    const res = derivePowersFromTraits(
+      active('e1', 'aj1', 'et1'),
+      catStar(),
+      P,
+      fakeRng({ chances: [true, true] }),
+    );
+    expect(res.pouvoirs[0].traitIds).toEqual(['e1', 'aj1', 'et1', 'a1', 'p1']);
+    expect(res.pouvoirs[1].traitIds).toEqual(['e1', 'aj1', 'et1', 'p1']);
+  });
+
+  it('T-KFAIL-SHARED : échec du {Kp} partagé ⇒ aucun des deux pouvoirs', () => {
+    const res = derivePowersFromTraits(
+      active('e1', 'aj1', 'et1'),
+      catStar(),
+      P,
+      fakeRng({ chances: [true, false] }), // {Ka} ok, {Kp} échoue
+    );
+    expect(res.pouvoirs).toEqual([]);
+  });
+
+  it('T-KFAIL-PARTIAL : échec d’un jeton présent dans un seul gabarit ⇒ l’autre pouvoir subsiste', () => {
+    const res = derivePowersFromTraits(
+      active('e1', 'aj1', 'et1'),
+      catStar(),
+      P,
+      fakeRng({ chances: [false, true] }), // {Ka} échoue (gabarit 1 seul), {Kp} ok
+    );
+    expect(res.pouvoirs).toHaveLength(1);
+    expect(res.pouvoirs[0].label).toBe('griffes gelé sur bras');
+    // L'action {Ka} ayant échoué, elle n'est PAS inscrite dans l'ADN.
+    expect(res.adn.traits.find((t) => t.traitId === 'a1')).toBeUndefined();
+  });
+
+  it('T-KORDER : un seul tirage par jeton distinct (2 tirages pour {Ka} puis {Kp})', () => {
+    // 3 valeurs fournies : si plus de 2 chances étaient consommées, la file « chances » serait épuisée
+    // (erreur) ; le test vérifie donc qu'exactement 2 tirages ont lieu (un par jeton distinct).
+    const res = derivePowersFromTraits(
+      active('e1', 'aj1', 'et1'),
+      catStar(),
+      P,
+      fakeRng({ chances: [true, true, true] }),
+    );
+    expect(res.pouvoirs).toHaveLength(2);
+  });
+});

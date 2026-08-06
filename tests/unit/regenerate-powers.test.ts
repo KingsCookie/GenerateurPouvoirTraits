@@ -124,3 +124,41 @@ describe('US9 — regeneratePowers (cœur pur)', () => {
     expect(a).toEqual(b);
   });
 });
+
+// US1 (v0.15.0) — une feuille à deux pouvoirs attribue des P/M indépendantes par pouvoir (§7.2).
+describe('US1 — P/M indépendantes des deux pouvoirs (T-PM-INDEP)', () => {
+  const etatId = catalog.byType.Etat[0].id;
+  // Action + Élément + État actifs ⇒ feuille a/e/et ⇒ deux pouvoirs (« {a} {e} {et} » ; « rends {e} {et} »).
+  const activeAEET: ResilientTrait[] = [
+    { traitId: actionId, active: true, resilience: 50 },
+    { traitId: elementId, active: true, resilience: 50 },
+    { traitId: etatId, active: true, resilience: 50 },
+  ];
+
+  it('sans parents ⇒ deux pouvoirs, chacun avec ses P/M ∈ [1,10]', () => {
+    const { pouvoirs } = regeneratePowers(
+      person(activeAEET),
+      [],
+      catalog,
+      defaultParameters(),
+      createRng(7n),
+    );
+    expect(pouvoirs).toHaveLength(2);
+    // Libellés distincts (X ≠ Y) ⇒ pas de collision de clé d'affichage.
+    expect(pouvoirs[0].label).not.toBe(pouvoirs[1].label);
+    for (const pw of pouvoirs) {
+      expect(pw.puissance).toBeGreaterThanOrEqual(1);
+      expect(pw.puissance).toBeLessThanOrEqual(10);
+      expect(pw.maitrise).toBeGreaterThanOrEqual(1);
+      expect(pw.maitrise).toBeLessThanOrEqual(10);
+    }
+  });
+
+  it('déterministe : même seed ⇒ mêmes P/M pour les deux pouvoirs', () => {
+    const a = regeneratePowers(person(activeAEET), [], catalog, defaultParameters(), createRng(7n));
+    const b = regeneratePowers(person(activeAEET), [], catalog, defaultParameters(), createRng(7n));
+    expect(a.pouvoirs.map((p) => [p.puissance, p.maitrise])).toEqual(
+      b.pouvoirs.map((p) => [p.puissance, p.maitrise]),
+    );
+  });
+});

@@ -1,29 +1,30 @@
 <!-- SPECKIT START -->
-## Feature active : 015-esperance-vie-tris-filtres
+## Feature active : 016-revision-algo-pouvoir
 
-- **Plan** : `specs/015-esperance-vie-tris-filtres/plan.md` (contexte technique, Constitution Check 10/10 PASS, structure)
-- **Spec** : `specs/015-esperance-vie-tris-filtres/spec.md` (5 user stories P1→P5, 5 clarifications 2026-08-06)
-- **Recherche / décisions** : `specs/015-esperance-vie-tris-filtres/research.md` (R1→R9 : âge stocké, params espèce, ordre du tick, déterminisme mort, migration v5, tris P/M, filtres année, yield spinner, composant Spinner)
-- **Modèle de données** : `specs/015-esperance-vie-tris-filtres/data-model.md` (Espèce +`esperanceVie`/`mortNaturellePct` ; Personne +`age` suivi/+`immortel` ; SortKey/FilterCriteria étendus ; `advancing`)
-- **Contrats** : `specs/015-esperance-vie-tris-filtres/contracts/ui-contract.md` (invariants INV-D/A/R/S/F/L/P/PE)
-- **Quickstart** : `specs/015-esperance-vie-tris-filtres/quickstart.md` (tests + checklist manuelle mobile+desktop)
-- **Périmètre** : nouvelle capacité, **cible v0.14.0**. **Cœur + UI**. (1) **Mort naturelle par espèce** :
-  `esperanceVie`+`mortNaturellePct` (défauts humain **60/10**) ; nouvelle étape de `tick` (vieillissement explicite
-  puis mort naturelle **en dernier**, tirage seedé pour les seuls éligibles vivant/non-immortel/âge≥espérance ;
-  cause « mort naturelle »). (2) **Âge = compteur stocké** (`Personne.age`) +1/an, **gelé à la mort**, repris tel
-  quel à la résurrection ; **génération dérivée de la date de naissance (invariante)**. (3) **Fiche** : `immortel`
-  (défaut faux) + fonctions cœur `resurrect`/`setImmortal` ; boutons **Ressusciter** + case **Immortel** (mobile ET
-  desktop). (4) **Tris puissance & maîtrise** (`SortKey`+`sortPopulation` : pouvoir le plus extrême, **sans-pouvoir
-  en fin**). (5) **Filtres né après X / né avant Y** (bornes **inclusives**, **désactivent** le filtre génération).
-  (6) **Spinner** « avancer » (flèche circulaire, l'UI **cède une frame** avant le calcul synchrone).
-  **CONTRAINTES : logique domaine en `src/core` pur (RNG en paramètre) ; UI = présentation seule ; `FORMAT_VERSION`
-  4→5 + migrations (immortel=faux, age recomposé, champs espèce par défaut) ; tokens seule source ; parité
-  mobile/desktop (seuil 760) ; `prefers-reduced-motion` coupe la rotation du spinner ; déterminisme préservé.**
-- **Actions Constitution** : Principe IX → `rsrc/DescriptionProjet.md`/`.adoc` **déjà mis à jour avec autorisation
-  de l'auteur** (§3.3, §6.5–6.7, §8.1–8.4, §9.4). Principe IV → mort/âge/résurrection/immortalité/tris/filtres en
-  `src/core` (purs). Principe V → tests Vitest seed-fixe (tick, death, sort, filter, state). Principe VI →
-  versionnage + migrations. **Aucune dépendance ajoutée**.
-- Features livrées : 14 (`specs/014-corrections-jauges-listes/`) lot corrections UI : composant `Gauge.svelte`
+- **Plan** : `specs/016-revision-algo-pouvoir/plan.md` (contexte technique, Constitution Check 10/10 PASS, structure)
+- **Spec** : `specs/016-revision-algo-pouvoir/spec.md` (3 user stories P1→P3, 11 FR, 1 clarification 2026-08-06)
+- **Recherche / décisions** : `specs/016-revision-algo-pouvoir/research.md` (R1→R7 : retour `string[]` de l'arbre, `transformSublist`→`Pouvoir[]`, ordre RNG des `K` partagés, id `#index`, traitIds par pouvoir, point de passage unique, pas de migration)
+- **Modèle de données** : `specs/016-revision-algo-pouvoir/data-model.md` (Pouvoir : cardinalité 0/1/2 par sous-liste, id `#index`, traitIds ; jeton `K` partagé ; invariants INV-2P/K1/IDP/DET/NR)
+- **Contrats** : `specs/016-revision-algo-pouvoir/contracts/core-contract.md` (invariants INV-C1→C13)
+- **Quickstart** : `specs/016-revision-algo-pouvoir/quickstart.md` (tests seed-fixe + checklist manuelle mobile+desktop)
+- **Périmètre** : révision algo **§6.4.2**, **cible v0.15.0**, **cœur seul** (UI inchangée, clé d'affichage = libellé).
+  (1) **Deux pouvoirs par feuille** : 23 feuilles marquées `"X" ; "Y"` produisent 2 pouvoirs distincts (P/M
+  **indépendantes** §7.2). (2) **Jeton `Kx` partagé** : un seul tirage `K` réutilisé dans les 2 pouvoirs ; **échec**
+  ⇒ seuls les pouvoirs référençant ce jeton tombent (un pouvoir sans jeton `K` échoué est produit). (3) **24 feuilles
+  révisées** dont `a/e/p/r/aj/et` (1ᵉʳ pouvoir `{aj} {et}`), `a/et` (`rends {Ke} {et}`), `aj/et/r` (mono, sans `{Ka}`).
+  (4) **id pouvoir** suffixé `#index` (unique **par personne** ; collisions inter-personnes tolérées).
+  **CONTRAINTES : `powerLabelTree.ts` renvoie 1–2 gabarits ; `transformSublist`→`Pouvoir[]` (0–2) ; ordre RNG fixe
+  (K distincts par 1ʳᵉ apparition, puis P/M par index côté appelants) ; cœur `src/core` pur ; `FORMAT_VERSION`
+  **inchangé** (pas de migration) ; déterminisme préservé (sorties seed-fixe **changent** vs v0.14.x, attendu).**
+- **Actions Constitution** : Principe IX → `rsrc/DescriptionProjet.md`/`.adoc`/`.pdf` §6.4.2 **déjà mis à jour et
+  validés avec autorisation de l'auteur**. Principe IV → logique en `src/core/powers` (pur). Principe V → tests
+  Vitest seed-fixe (arbre 24 feuilles + non-régression, `Kx` partagé, échec K, id, déterminisme). **Aucune
+  dépendance ajoutée ; aucune migration.**
+- Features livrées : 15 (`specs/015-esperance-vie-tris-filtres/`) espérance de vie & mort naturelle par espèce
+  (`esperanceVie`/`mortNaturellePct`, défauts humain 60/10), âge suivi (`Personne.age`, gelé à la mort/repris à la
+  résurrection), `resurrect`/`setImmortal` + boutons Ressusciter/Immortel, tris puissance/maîtrise, filtres né
+  après/avant, spinner « avancer », `FORMAT_VERSION` 4→5 — v0.14.1 ;
+  14 (`specs/014-corrections-jauges-listes/`) lot corrections UI : composant `Gauge.svelte`
   partagé + `gaugeState()` (états rompu/normal/surchargé, tokens), jauges en fiche mobile+desktop, date complète
   Population mobile, ligne Sandbox alignée + « ⋯ », bulle « Avancer » extensible — v0.13.2 ; puis fix §7.2 arrondi
   P/M (départage .5 aléatoire seedé, équiprobabilité 0/11) — v0.13.3→v0.13.4 ;
