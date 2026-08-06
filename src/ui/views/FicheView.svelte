@@ -19,16 +19,10 @@
   import TraitModeSelector from '../components/TraitModeSelector.svelte';
   import TreeLegend from '../components/TreeLegend.svelte';
   import MobileSheet from '../components/MobileSheet.svelte';
+  import Gauge from '../components/Gauge.svelte';
 
   // Feuille de confirmation « Tuer… » (mobile).
   let killSheetOpen = false;
-  // Barre de mesure P/M (mobile) : % de remplissage (plafonné visuellement) + dépassement de barème.
-  function barPct(v: number): number {
-    return Math.max(0, Math.min(100, (v / 10) * 100));
-  }
-  function isOver(v: number): boolean {
-    return v > 10;
-  }
 
   // Réactif au catalogue éditable (Feature 5) : un trait renommé/supprimé se reflète aussitôt.
   // `population` résout les noms des enfants (FR-015).
@@ -120,25 +114,8 @@
               <strong>{pv.label}</strong>
               <span class="badge-accent">{pv.template}</span>
             </div>
-            {#each [{ lab: 'puissance', v: pv.puissance }, { lab: 'maîtrise', v: pv.maitrise }] as m (m.lab)}
-              <div class="meter-row">
-                <span class="mlabel">{m.lab}</span>
-                <span
-                  class="track"
-                  role="meter"
-                  aria-valuenow={m.v}
-                  aria-valuemin="0"
-                  aria-valuemax="10"
-                  aria-label={`${m.lab} ${m.v} sur 10${isOver(m.v) ? ' (hors barème)' : ''}`}
-                >
-                  <span class="fill" class:over={isOver(m.v)} style="width:{barPct(m.v)}%"></span>
-                  {#if isOver(m.v)}<span class="cap" aria-hidden="true"></span>{/if}
-                </span>
-                <span class="mval" class:over={isOver(m.v)}
-                  >{m.v}<span class="slash">/10</span></span
-                >
-              </div>
-            {/each}
+            <Gauge label="puissance" value={pv.puissance} />
+            <Gauge label="maîtrise" value={pv.maitrise} />
           </div>
         {/each}
       {/if}
@@ -403,8 +380,8 @@
               <span class="badge-accent">{pv.template}</span>
             </div>
             <div class="stats">
-              <span>Puissance : <strong>{pv.puissance}</strong> / 10</span>
-              <span>Maîtrise : <strong>{pv.maitrise}</strong> / 10</span>
+              <Gauge label="Puissance" value={pv.puissance} />
+              <Gauge label="Maîtrise" value={pv.maitrise} />
             </div>
           </div>
         {/each}
@@ -557,10 +534,8 @@
   }
   .stats {
     display: flex;
-    gap: 1.5rem;
+    flex-direction: column;
     margin-top: 0.4rem;
-    color: var(--fg-muted);
-    font-size: 0.9rem;
   }
   .traits {
     margin: 0;
@@ -709,70 +684,6 @@
     font-size: 20px;
     font-weight: 600;
     color: var(--accent-text);
-  }
-  .meter-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 6px;
-  }
-  .mlabel {
-    flex: none;
-    width: 74px;
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--fg-faint);
-  }
-  .track {
-    position: relative;
-    flex: 1;
-    height: 8px;
-    border-radius: var(--chip-radius);
-    background: var(--row-border);
-    display: block;
-  }
-  .fill {
-    position: absolute;
-    inset: 0 auto 0 0;
-    height: 100%;
-    border-radius: var(--chip-radius);
-    background: var(--accent);
-  }
-  .fill.over {
-    width: 100% !important;
-    background: repeating-linear-gradient(
-      115deg,
-      color-mix(in srgb, var(--accent) 45%, #fff) 0 3px,
-      var(--accent) 3px 9px
-    );
-    box-shadow:
-      var(--year-shadow),
-      inset 0 0 0 1px var(--accent-text);
-  }
-  .cap {
-    position: absolute;
-    right: -1px;
-    top: -4px;
-    bottom: -4px;
-    width: 2px;
-    border-radius: 2px;
-    background: var(--fg);
-  }
-  .mval {
-    flex: none;
-    width: 58px;
-    text-align: right;
-    font-family: var(--mono);
-    font-size: 13px;
-    color: var(--accent-text);
-  }
-  .mval.over {
-    color: var(--fg);
-    font-weight: 600;
-  }
-  .mval .slash {
-    font-size: 11px;
-    color: var(--fg-faint);
   }
   .m-arbre {
     display: flex;

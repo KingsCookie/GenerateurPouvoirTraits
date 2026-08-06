@@ -53,7 +53,7 @@
     type PageSize,
     type ListSort,
   } from '../stores/ui.js';
-  import { yearOf, type SortKey } from '../../core/index.js';
+  import { type SortKey } from '../../core/index.js';
   import FilterBar from '../components/FilterBar.svelte';
   import Paginator from '../components/Paginator.svelte';
   import SandboxPersonForm from '../components/SandboxPersonForm.svelte';
@@ -301,7 +301,19 @@
                 >
                 <span class="sb-mmeta" class:sel={$reproMode && $reproSelected.has(row.id)}>
                   {#if $reproMode && $reproSelected.has(row.id)}sélectionné ·
-                  {/if}an {yearOf(row.dateNaissance)} · {row.age} ans
+                  {/if}{row.dateNaissance} · {row.age} ans · {row.especeId} · g{row.generation}
+                </span>
+                <span class="sb-mpowers">
+                  {#if row.pouvoirs.length === 0}
+                    <span class="muted">aucun pouvoir</span>
+                  {:else}
+                    {#each row.pouvoirs as pouvoir}
+                      <span class="chip"
+                        >{pouvoir.label}
+                        <span class="pm">{pouvoir.puissance}/{pouvoir.maitrise}</span></span
+                      >
+                    {/each}
+                  {/if}
                 </span>
               </div>
               {#if !$reproMode}
@@ -772,6 +784,12 @@
   }
   .sb-mmeta.sel {
     color: var(--accent-text);
+  }
+  .sb-mpowers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 2px;
   }
   .m-dots {
     width: 32px;
