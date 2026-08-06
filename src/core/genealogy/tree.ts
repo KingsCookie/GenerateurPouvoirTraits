@@ -3,7 +3,7 @@
 // emplacement (pas de déduplication — INV-G1). Aucune mutation des entrées (INV-G6).
 import type { Personne } from '../model/personne.js';
 import type { Catalog } from '../model/trait.js';
-import { computeAge, powerLabel, yearOf } from '../genesis/derived.js';
+import { powerLabel, yearOf } from '../genesis/derived.js';
 
 /** Contexte de calcul des nœuds (âge + libellés de pouvoir). Données pures passées en entrée. */
 export interface TreeContext {
@@ -64,7 +64,7 @@ function nodeLite(p: Personne, ctx: TreeContext): TreeNodeLite {
   return {
     id: p.id,
     nom: p.nom,
-    age: computeAge(yearOf(p.dateNaissance), ctx.currentYear),
+    age: p.age, // âge suivi (Feature 015)
     vivant: p.vivant,
     pouvoirs: p.pouvoirs.map((pw) => powerLabel(pw, ctx.catalog)),
   };

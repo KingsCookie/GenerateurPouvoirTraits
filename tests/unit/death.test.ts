@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createRng } from '../../src/core/rng/rng.js';
-import { kill } from '../../src/core/life/death.js';
+import { kill, resurrect, setImmortal } from '../../src/core/life/death.js';
 import { selectCandidates } from '../../src/core/repro/candidates.js';
 import {
   defaultCatalog,
@@ -19,8 +19,10 @@ function person(id: string, conjoints: Conjoint[] = []): Personne {
     especeId: 'humain',
     genreId: 'masculin',
     dateNaissance: '1980-06-15',
+    age: 30,
     vivant: true,
     raisonDeces: null,
+    immortel: false,
     parents: [],
     enfants: [],
     conjoints,
@@ -83,5 +85,49 @@ describe('Mort manuelle §6.7 (T028)', () => {
     if (!dead.ok) return;
     const candidates = selectCandidates(dead.state.population, 2010, especeById, createRng(1n));
     expect(candidates).not.toContain('a');
+  });
+});
+
+describe('Résurrection §6.7 (Feature 015, US2)', () => {
+  it('INV-R1 : ressusciter un décédé ⇒ vivant, raison effacée, âge inchangé', () => {
+    const dead = kill(state([person('a')]), 'a', 'mort naturelle');
+    expect(dead.ok).toBe(true);
+    if (!dead.ok) return;
+    const ageFige = dead.state.population.find((p) => p.id === 'a')!.age;
+    const res = resurrect(dead.state, 'a');
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const a = res.state.population.find((p) => p.id === 'a')!;
+    expect(a.vivant).toBe(true);
+    expect(a.raisonDeces).toBeNull();
+    expect(a.age).toBe(ageFige); // âge repris tel quel (gelé)
+  });
+
+  it('INV-R3 : ressusciter un individu déjà vivant ⇒ refus', () => {
+    const res = resurrect(state([person('a')]), 'a');
+    expect(res.ok).toBe(false);
+  });
+
+  it('individu introuvable ⇒ refus', () => {
+    expect(resurrect(state([person('a')]), 'zzz').ok).toBe(false);
+  });
+});
+
+describe('Immortalité §6.7 (Feature 015, US2)', () => {
+  it('INV-R4 : setImmortal bascule le champ', () => {
+    const res = setImmortal(state([person('a')]), 'a', true);
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.state.population.find((p) => p.id === 'a')!.immortel).toBe(true);
+  });
+
+  it('INV-R5 : un immortel reste tuable manuellement', () => {
+    const imm = setImmortal(state([person('a')]), 'a', true);
+    expect(imm.ok).toBe(true);
+    if (!imm.ok) return;
+    const dead = kill(imm.state, 'a', 'accident');
+    expect(dead.ok).toBe(true);
+    if (!dead.ok) return;
+    expect(dead.state.population.find((p) => p.id === 'a')!.vivant).toBe(false);
   });
 });

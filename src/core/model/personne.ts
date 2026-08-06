@@ -14,8 +14,10 @@ export interface Personne {
   especeId: string;
   genreId: string;
   dateNaissance: string; // ISO YYYY-MM-DD
+  age: number; // âge **suivi** (§R1) : +1/an tant que vivant, gelé à la mort, repris tel quel à la résurrection
   vivant: boolean;
   raisonDeces: string | null;
+  immortel: boolean; // si vrai, insensible à la mort naturelle (§6.7) ; tuable manuellement. Défaut faux.
   parents: string[];
   enfants: string[];
   conjoints: Conjoint[];

@@ -61,7 +61,7 @@ export { selectCandidates, hasCurrentSpouse } from './repro/candidates.js';
 export { formCouples, areConsanguine, isDirectLineage } from './repro/pairing.js';
 export type { PairingResult } from './repro/pairing.js';
 export { tick, advanceYears } from './time/tick.js';
-export { kill } from './life/death.js';
+export { kill, resurrect, setImmortal } from './life/death.js';
 export type { KillResult } from './life/death.js';
 
 // Sandbox & « make it real » (Feature 7 : reproduction manuelle, création/clonage/édition/suppression,

@@ -22,6 +22,8 @@ function emptyCriteria(): FilterCriteria {
     traitPresence: null,
     powerPresence: null,
     statuses: new Set<Statut>(),
+    bornNafter: null, // Feature 015 : filtres d'année inactifs par défaut
+    bornBefore: null,
   };
 }
 
@@ -60,6 +62,19 @@ export function setPowerPresence(p: PowerPresence): void {
 /** Définit le filtre de présence de trait (mono-sélection ; `null` = ignoré) — Feature 010. */
 export function setTraitPresence(p: TraitPresence): void {
   criteria.update((c) => ({ ...c, traitPresence: p }));
+}
+
+/**
+ * Définit la borne « né après X » (Feature 015). `null` ⇒ inactif. Dès qu'une borne d'année est
+ * posée, le filtre génération devient inopérant (exclusivité gérée par `filterPopulation`, INV-F2).
+ */
+export function setBornAfter(year: number | null): void {
+  criteria.update((c) => ({ ...c, bornNafter: year }));
+}
+
+/** Définit la borne « né avant Y » (Feature 015). `null` ⇒ inactif. */
+export function setBornBefore(year: number | null): void {
+  criteria.update((c) => ({ ...c, bornBefore: year }));
 }
 
 /** Réinitialise tous les filtres et rétablit le défaut « dernière génération » (FR-010). */

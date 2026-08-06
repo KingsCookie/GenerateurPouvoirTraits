@@ -19,6 +19,8 @@ function emptyCriteria(over: Partial<FilterCriteria> = {}): FilterCriteria {
     traitPresence: null,
     powerPresence: null,
     statuses: new Set(),
+    bornNafter: null,
+    bornBefore: null,
     ...over,
   };
 }
@@ -195,6 +197,54 @@ describe('filterPopulation — présence de trait (Feature 010)', () => {
         ),
       ),
     ).toEqual(['b1', 'd1']);
+  });
+});
+
+describe('filterPopulation — filtres par année de naissance (Feature 015, US4)', () => {
+  it('« né après X » : bornes inclusives (année ≥ X)', () => {
+    const { population } = buildGenealogyFixture();
+    // f1 est né en 0062 (le plus tardif) ⇒ seul individu avec année ≥ 62.
+    expect(ids(filterPopulation(population, emptyCriteria({ bornNafter: 62 }), ctx))).toEqual([
+      'f1',
+    ]);
+  });
+
+  it('« né avant Y » : bornes inclusives (année ≤ Y)', () => {
+    const { population } = buildGenealogyFixture();
+    // a1 (0000) et a2 (0002) sont les seuls nés en année ≤ 2.
+    expect(ids(filterPopulation(population, emptyCriteria({ bornBefore: 2 }), ctx))).toEqual([
+      'a1',
+      'a2',
+    ]);
+  });
+
+  it('intervalle [X, Y] inclusif', () => {
+    const { population } = buildGenealogyFixture();
+    // Nés dans [19, 21] : xo (0019), cx (0020), b1 (0021).
+    expect(
+      ids(filterPopulation(population, emptyCriteria({ bornNafter: 19, bornBefore: 21 }), ctx)),
+    ).toEqual(['xo', 'cx', 'b1']);
+  });
+
+  it('exclusivité : une borne d’année active ⇒ le filtre génération est ignoré (INV-F2)', () => {
+    const { population } = buildGenealogyFixture();
+    // generations=[3] sélectionnerait f1 (0062) ; mais bornBefore=2 est actif ⇒ générations ignorées.
+    expect(
+      ids(
+        filterPopulation(
+          population,
+          emptyCriteria({ generations: new Set([3]), bornBefore: 2 }),
+          ctx,
+        ),
+      ),
+    ).toEqual(['a1', 'a2']);
+  });
+
+  it('intervalle vide (X > Y) ⇒ aucun résultat, sans erreur (INV-F5)', () => {
+    const { population } = buildGenealogyFixture();
+    expect(
+      filterPopulation(population, emptyCriteria({ bornNafter: 50, bornBefore: 10 }), ctx),
+    ).toHaveLength(0);
   });
 });
 

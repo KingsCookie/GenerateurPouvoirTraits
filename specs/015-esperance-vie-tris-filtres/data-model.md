@@ -14,8 +14,8 @@ champs par espèce, deux champs par personne, et un état de présentation (tri/
 
 - Validation : `validateEspece()` — `esperanceVie` forcé entier ≥ 0 ; `mortNaturellePct` clampé
   [0..100].
-- Défauts : `defaultEspece()` (humain 60/10) et `defaultReproParams()` (nouvelle espèce : valeurs
-  neutres, ex. 60/10 ou 0/0 — à fixer en implémentation, cohérent avec les autres défauts).
+- Défauts : `defaultEspece()` (humain **60 / 10**) et `defaultReproParams()` (nouvelle espèce :
+  **60 / 10** également, aligné sur l'humain).
 
 ### Personne (`src/core/model/personne.ts`) — 2 champs ajoutés
 

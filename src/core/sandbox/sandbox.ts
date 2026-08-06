@@ -79,7 +79,18 @@ export function manualReproduce(
  * Émet un événement `birth` à l'année de sa date de naissance. Pur ; ne mute pas `state`.
  */
 export function createPerson(state: AppState, draft: PersonDraft, newId: string): AppState {
-  const person: Personne = { id: newId, ...draft, parents: [], enfants: [], conjoints: [] };
+  // Âge suivi (Feature 015) : dérivé de la date de naissance à la création (borné ≥ 0) ;
+  // immortel par défaut faux (non éditable via le brouillon sandbox).
+  const age = Math.max(0, state.currentYear - yearOfIso(draft.dateNaissance));
+  const person: Personne = {
+    id: newId,
+    ...draft,
+    age,
+    immortel: false,
+    parents: [],
+    enfants: [],
+    conjoints: [],
+  };
   return {
     ...state,
     population: [...state.population, person],
@@ -100,8 +111,10 @@ export function clonePerson(state: AppState, sourceId: string, newId: string): A
     especeId: src.especeId,
     genreId: src.genreId,
     dateNaissance: src.dateNaissance,
+    age: src.age, // clone : recopie l'âge suivi
     vivant: src.vivant,
     raisonDeces: src.raisonDeces,
+    immortel: src.immortel,
     adn: { traits: src.adn.traits.map((t) => ({ ...t })) },
     pouvoirs: src.pouvoirs.map((pw) => ({ ...pw })),
     notes: src.notes,

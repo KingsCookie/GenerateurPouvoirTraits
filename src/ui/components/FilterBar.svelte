@@ -8,6 +8,8 @@
     setTraitScope,
     setPowerPresence,
     setTraitPresence,
+    setBornAfter,
+    setBornBefore,
     resetFilters,
   } from '../stores/filters.js';
   import {
@@ -47,8 +49,22 @@
     nom: 'nom',
     naissance: 'naissance',
     age: 'âge',
+    puissance: 'puissance',
+    maitrise: 'maîtrise',
   };
-  const SORT_KEYS: Exclude<SortKey, null>[] = ['nom', 'naissance', 'age'];
+  const SORT_KEYS: Exclude<SortKey, null>[] = ['nom', 'naissance', 'age', 'puissance', 'maitrise'];
+
+  // Filtres par année de naissance (Feature 015) : bornes inclusives ; vide ⇒ inactif. Une borne
+  // active désactive le filtre génération (INV-F2).
+  $: yearFilterActive = $criteria.bornNafter !== null || $criteria.bornBefore !== null;
+  function onBornAfter(e: Event): void {
+    const raw = (e.target as HTMLInputElement).value.trim();
+    setBornAfter(raw === '' ? null : Math.trunc(Number(raw)));
+  }
+  function onBornBefore(e: Event): void {
+    const raw = (e.target as HTMLInputElement).value.trim();
+    setBornBefore(raw === '' ? null : Math.trunc(Number(raw)));
+  }
   const PAGE_SIZES: { value: PageSize; label: string }[] = [
     { value: 50, label: '50' },
     { value: 100, label: '100' },
@@ -73,7 +89,9 @@
     $criteria.statuses.size +
     ($criteria.powerPresence ? 1 : 0) +
     ($criteria.traitPresence ? 1 : 0) +
-    ($criteria.traitIds.size ? 1 : 0);
+    ($criteria.traitIds.size ? 1 : 0) +
+    ($criteria.bornNafter !== null ? 1 : 0) +
+    ($criteria.bornBefore !== null ? 1 : 0);
   // Compte de résultats en direct (bouton bas « Voir les N individus » — FR-017).
   $: effGenerations =
     $generationTouched || derniere === null ? $criteria.generations : new Set<number>([derniere]);
@@ -221,9 +239,11 @@
         </div>
       </div>
 
-      <div class="m-field">
+      <div class="m-field" class:disabled={yearFilterActive}>
         <span class="m-label">Génération</span>
-        {#if !$generationTouched && derniere !== null}
+        {#if yearFilterActive}
+          <span class="m-hint">désactivé (filtre par année actif)</span>
+        {:else if !$generationTouched && derniere !== null}
           <span class="m-hint">défaut : dernière ({derniere})</span>
         {/if}
         <div class="m-chips">
@@ -231,11 +251,36 @@
             <label class="chip"
               ><input
                 type="checkbox"
+                disabled={yearFilterActive}
                 checked={$criteria.generations.has(g)}
                 on:change={() => toggleInSet('generations', g)}
               />{g}</label
             >
           {/each}
+        </div>
+      </div>
+
+      <div class="m-field">
+        <span class="m-label">Année de naissance</span>
+        <div class="m-years">
+          <label
+            >né après
+            <input
+              type="number"
+              value={$criteria.bornNafter ?? ''}
+              on:change={onBornAfter}
+              aria-label="né après (année)"
+            /></label
+          >
+          <label
+            >né avant
+            <input
+              type="number"
+              value={$criteria.bornBefore ?? ''}
+              on:change={onBornBefore}
+              aria-label="né avant (année)"
+            /></label
+          >
         </div>
       </div>
 
@@ -371,9 +416,11 @@
     </div>
 
     <div class="dims">
-      <fieldset>
+      <fieldset disabled={yearFilterActive}>
         <legend>Génération</legend>
-        {#if !$generationTouched && derniere !== null}
+        {#if yearFilterActive}
+          <p class="hint">Désactivé (filtre par année de naissance actif).</p>
+        {:else if !$generationTouched && derniere !== null}
           <p class="hint">Défaut : dernière génération ({derniere})</p>
         {/if}
         <div class="chips">
@@ -387,6 +434,28 @@
               {g}
             </label>
           {/each}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Année de naissance</legend>
+        <div class="years">
+          <label class="year-field"
+            >né après
+            <input
+              type="number"
+              value={$criteria.bornNafter ?? ''}
+              on:change={onBornAfter}
+            /></label
+          >
+          <label class="year-field"
+            >né avant
+            <input
+              type="number"
+              value={$criteria.bornBefore ?? ''}
+              on:change={onBornBefore}
+            /></label
+          >
         </div>
       </fieldset>
 
@@ -663,6 +732,26 @@
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
+  }
+  /* Filtres par année (Feature 015) + état désactivé quand une borne est active. */
+  .m-field.disabled {
+    opacity: 0.5;
+  }
+  .m-years,
+  .years {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .m-years label,
+  .year-field {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .m-years input,
+  .year-field input {
+    width: 6rem;
   }
   .m-label {
     font-family: var(--mono);

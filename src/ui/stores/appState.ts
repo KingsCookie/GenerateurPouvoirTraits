@@ -10,6 +10,8 @@ import {
   birthEvent,
   advanceYears as advanceYearsCore,
   kill as killCore,
+  resurrect as resurrectCore,
+  setImmortal as setImmortalCore,
   serializeConfig,
   serializeData,
   serializeFull,
@@ -202,17 +204,62 @@ function snapshot(): AppState {
   };
 }
 
+// Indicateur de chargement (Feature 015, US5) : vrai pendant le calcul d'« avancer ».
+export const advancing = writable<boolean>(false);
+
 /**
- * Avance la simulation de `years` années (≥ 1) via le tick annuel déterministe (Feature 3).
- * Continue le flux `engineRng` ; met à jour population, couples et année courante.
+ * Attend qu'une frame ait été **effectivement peinte** avant de rendre la main (repli `setTimeout`
+ * hors DOM). Un **double** `requestAnimationFrame` est nécessaire : le 1ᵉʳ rAF s'exécute *avant* la
+ * peinture de la frame courante (DOM à jour mais spinner pas encore peint) ; le 2ᵉ ne se déclenche
+ * qu'*après* cette peinture. Sans cela, le calcul synchrone bloquant démarrerait avant tout repaint
+ * et le spinner ne s'afficherait jamais (§R8).
  */
-export function advanceYears(years: number): void {
-  if (!Number.isFinite(years) || years < 1) return;
-  const result = advanceYearsCore(snapshot(), Math.floor(years), engineRng);
+function yieldFrame(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    } else {
+      setTimeout(resolve, 0);
+    }
+  });
+}
+
+// Seuil de charge (population × années) en dessous duquel le calcul d'« avancer » est considéré
+// **quasi instantané** : on l'exécute alors directement, sans afficher le spinner (évite le
+// clignotement). Au-dessus, on affiche l'indicateur. (Le calcul étant synchrone, sa durée ne peut
+// pas être mesurée « pendant » qu'il tourne ⇒ heuristique a priori sur la charge.)
+const SPINNER_MIN_WORK = 5000;
+
+/** Applique le calcul synchrone du tick et publie le nouvel état. */
+function applyAdvance(n: number): void {
+  const result = advanceYearsCore(snapshot(), n, engineRng);
   population.set(result.population);
   couples.set(result.couples);
   currentYear.set(result.currentYear);
   history.set(result.history);
+}
+
+/**
+ * Avance la simulation de `years` années (≥ 1) via le tick annuel déterministe (Feature 3).
+ * Continue le flux `engineRng` ; met à jour population, couples et année courante.
+ * Feature 015 (US5) : si la charge estimée dépasse `SPINNER_MIN_WORK`, monte l'indicateur
+ * `advancing` puis **cède une frame** avant le calcul synchrone (spinner peint, §R8) et le retire à
+ * la fin ; sinon exécute directement (calcul instantané, pas de spinner).
+ */
+export async function advanceYears(years: number): Promise<void> {
+  if (!Number.isFinite(years) || years < 1) return;
+  const n = Math.floor(years);
+  if (get(population).length * n < SPINNER_MIN_WORK) {
+    applyAdvance(n); // quasi instantané : pas de spinner
+    return;
+  }
+  advancing.set(true);
+  await yieldFrame();
+  try {
+    applyAdvance(n);
+  } finally {
+    advancing.set(false);
+  }
 }
 
 /**
@@ -225,6 +272,28 @@ export function killPerson(personId: string, cause: string): string | null {
   population.set(res.state.population);
   couples.set(res.state.couples);
   history.set(res.state.history);
+  return null;
+}
+
+/**
+ * Ressuscite un individu décédé (Feature 015, §6.7) : redevient vivant à son âge figé, raison de
+ * décès effacée. Renvoie un message d'erreur si refusé (introuvable ou déjà vivant), sinon `null`.
+ */
+export function resurrectPerson(personId: string): string | null {
+  const res = resurrectCore(snapshot(), personId);
+  if (!res.ok) return res.error;
+  population.set(res.state.population);
+  return null;
+}
+
+/**
+ * Bascule l'immortalité d'un individu (Feature 015, §6.7). Renvoie un message d'erreur si refusé
+ * (introuvable), sinon `null`.
+ */
+export function setImmortal(personId: string, value: boolean): string | null {
+  const res = setImmortalCore(snapshot(), personId, value);
+  if (!res.ok) return res.error;
+  population.set(res.state.population);
   return null;
 }
 

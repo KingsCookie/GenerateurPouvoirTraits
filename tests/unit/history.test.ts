@@ -10,7 +10,10 @@ import { FORMAT_VERSION, type AppState } from '../../src/core/state/serialize.js
 function adultsState(seed: bigint): AppState {
   const parameters = { ...defaultParameters(), seed: seed.toString(), batchSize: 30, birthYear: 0 };
   const catalog = defaultCatalog();
-  const population = generateInitialPopulation(parameters, catalog, createRng(seed));
+  const population = generateInitialPopulation(parameters, catalog, createRng(seed))
+    // Âge suivi (Feature 015) aligné sur currentYear=25 (comportement historique de l'âge dérivé) :
+    // ces individus sont des adultes de 25 ans, en âge de se reproduire.
+    .map((p) => ({ ...p, age: 25 }));
   return {
     formatVersion: FORMAT_VERSION,
     kind: 'full',

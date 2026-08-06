@@ -4,13 +4,12 @@ import type { Personne } from '../model/personne.js';
 import type { Espece } from '../model/espece.js';
 import type { Couple } from '../model/couple.js';
 import type { PopulationEvent } from '../model/event.js';
-import { birthEvent, coupleEvent, divorceEvent } from '../model/event.js';
+import { birthEvent, coupleEvent, divorceEvent, deathEvent } from '../model/event.js';
 import { reproduce } from '../birth/reproduce.js';
 import { reproProbability } from '../repro/gaussian.js';
 import { litterSize } from '../repro/litter.js';
 import { selectCandidates } from '../repro/candidates.js';
 import { formCouples } from '../repro/pairing.js';
-import { yearOfIso } from '../genesis/dates.js';
 
 // Copie de travail d'une personne (tableaux clonés pour mutation locale sûre).
 function clonePerson(p: Personne): Personne {
@@ -27,14 +26,11 @@ function maxSeq(ids: Iterable<string>, prefix: string): number {
   return max;
 }
 
-function ageOf(person: Personne, currentYear: number): number {
-  return currentYear - yearOfIso(person.dateNaissance);
-}
-
 /**
  * Applique **un** tick annuel déterministe (§6.6) à l'état et renvoie le **nouvel** état (immuable).
- * Ordre fixe : divorces → candidats & volonté (gaussienne) → appariement → reproduction des nouveaux
- * couples puis des couples existants (portées via le moteur Feature 2) → `currentYear += 1`.
+ * Ordre fixe (Feature 015) : **vieillissement** (age +1 des vivants) → divorces → candidats & volonté
+ * (gaussienne) → appariement → reproduction des nouveaux couples puis des couples existants → **mort
+ * naturelle** (dernière étape, §6.6 pt 3) → `currentYear += 1`.
  */
 export function tick(state: AppState, rng: Rng): AppState {
   const { parameters, catalog, especes, currentYear } = state;
@@ -52,11 +48,18 @@ export function tick(state: AppState, rng: Rng): AppState {
   const nextChildId = (): string => `p-${String(++childCounter).padStart(6, '0')}`;
   const nextCoupleId = (): string => `c-${String(++coupleCounter).padStart(6, '0')}`;
 
-  // Journal d'événements daté (Feature 7) : naissances/couples/divorces de l'année courante.
+  // Journal d'événements daté (Feature 7) : naissances/couples/divorces/décès de l'année courante.
   const events: PopulationEvent[] = [];
 
   const especeOfCouple = (couple: Couple): Espece | undefined =>
     especeById.get(byId.get(couple.memberIds[0])?.especeId ?? '');
+
+  // 0. Vieillissement (Feature 015, §6.5) : l'avancée de la date fait vieillir les **vivants** de
+  // +1 an. Les morts ne vieillissent pas (âge figé). Les nouveau-nés de l'année (ajoutés plus bas)
+  // restent à 0 an.
+  for (const p of byId.values()) {
+    if (p.vivant) p.age += 1;
+  }
 
   // 1. Divorces potentiels (couples dans l'ordre stable).
   const survivingCouples: Couple[] = [];
@@ -138,16 +141,43 @@ export function tick(state: AppState, rng: Rng): AppState {
     if (!espece) continue;
     const members = couple.memberIds.map((id) => byId.get(id)).filter((p): p is Personne => !!p);
     if (members.length === 0) continue;
-    const avgAge = members.reduce((s, m) => s + ageOf(m, currentYear), 0) / members.length;
+    const avgAge = members.reduce((s, m) => s + m.age, 0) / members.length;
     const pct = couple.reproPct ?? reproProbability(avgAge, espece);
     if (rng.chance(pct)) reproduceCouple(couple, espece);
   }
 
-  // 5. Avance de l'année.
+  // 5. Mort naturelle (Feature 015, §6.6 pt 3) — **dernière** étape, sur la population dans l'ordre
+  // stable. Testée uniquement pour les individus **vivants, non immortels, d'âge ≥ espérance de vie**
+  // de leur espèce ; seul ce sous-ensemble consomme un tirage `rng.chance` (déterminisme, §R4).
+  let finalCouples: Couple[] = [...survivingCouples, ...newCouples];
+  for (const person of byId.values()) {
+    if (!person.vivant || person.immortel) continue;
+    const espece = especeById.get(person.especeId);
+    if (!espece || person.age < espece.esperanceVie) continue;
+    if (!rng.chance(espece.mortNaturellePct)) continue;
+    // Décès naturel : cause fixe + dissolution du couple éventuel (conjoints actuels → « ex »).
+    person.vivant = false;
+    person.raisonDeces = 'mort naturelle';
+    const couple = finalCouples.find((c) => c.memberIds.includes(person.id));
+    if (couple) {
+      const memberSet = new Set(couple.memberIds);
+      for (const memberId of couple.memberIds) {
+        const m = byId.get(memberId);
+        if (!m) continue;
+        for (const c of m.conjoints) {
+          if (c.statut === 'actuel' && memberSet.has(c.id)) c.statut = 'ex';
+        }
+      }
+      finalCouples = finalCouples.filter((c) => c.id !== couple.id);
+    }
+    events.push(deathEvent(person.id, currentYear));
+  }
+
+  // 6. Avance de l'année.
   return {
     ...state,
     population: [...byId.values()],
-    couples: [...survivingCouples, ...newCouples],
+    couples: finalCouples,
     currentYear: currentYear + 1,
     rngState: rng.getState(),
     history: [...state.history, ...events],

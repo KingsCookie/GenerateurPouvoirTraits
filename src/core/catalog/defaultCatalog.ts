@@ -218,6 +218,9 @@ export function defaultEspece(): Espece {
     litterMax: 4,
     litterExtraPct: 15,
     divorcePct: 0,
+    // Mort naturelle (Feature 015, §9.4) : défauts humain.
+    esperanceVie: 60,
+    mortNaturellePct: 10,
   };
 }
 

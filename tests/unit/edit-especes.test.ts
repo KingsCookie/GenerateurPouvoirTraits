@@ -112,4 +112,16 @@ describe('editEspeces — setEspeceParam + validateEspece (INV-E3)', () => {
     expect(validateEspece({ ...defaultEspeces()[0], divorcePct: -1 }).ok).toBe(false);
     expect(validateEspece({ ...defaultEspeces()[0], litterExtraPct: 20 }).ok).toBe(true);
   });
+
+  it('validateEspece : espérance de vie entière ≥ 0 (Feature 015)', () => {
+    expect(validateEspece({ ...defaultEspeces()[0], esperanceVie: -1 }).ok).toBe(false);
+    expect(validateEspece({ ...defaultEspeces()[0], esperanceVie: 60.5 }).ok).toBe(false);
+    expect(validateEspece({ ...defaultEspeces()[0], esperanceVie: 0 }).ok).toBe(true);
+  });
+
+  it('validateEspece : % de mort naturelle ∈ [0,100] (Feature 015)', () => {
+    expect(validateEspece({ ...defaultEspeces()[0], mortNaturellePct: 150 }).ok).toBe(false);
+    expect(validateEspece({ ...defaultEspeces()[0], mortNaturellePct: -1 }).ok).toBe(false);
+    expect(validateEspece({ ...defaultEspeces()[0], mortNaturellePct: 10 }).ok).toBe(true);
+  });
 });

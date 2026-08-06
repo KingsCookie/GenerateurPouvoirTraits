@@ -1,11 +1,13 @@
 <script lang="ts">
-  import { currentYear, advanceYears } from '../stores/appState.js';
+  import { currentYear, advanceYears, advancing } from '../stores/appState.js';
   import { isMobile } from '../stores/ui.js';
+  import Spinner from './Spinner.svelte';
 
   let years = 1;
 
   function onAdvance() {
-    advanceYears(years);
+    // Le store monte l'indicateur `advancing`, cède une frame (spinner peint), puis calcule (§R8).
+    void advanceYears(years);
   }
   function dec() {
     if (years > 1) years -= 1;
@@ -33,6 +35,9 @@
   </div>
   {#if $isMobile}
     <div class="controls">
+      <span class="spin-slot" aria-hidden={!$advancing}
+        >{#if $advancing}<Spinner size={18} />{/if}</span
+      >
       <div class="stepper">
         <button type="button" on:click={dec} disabled={years <= 1} aria-label="Diminuer">−</button>
         <input
@@ -44,16 +49,19 @@
         />
         <button type="button" on:click={inc} aria-label="Augmenter">+</button>
       </div>
-      <button class="primary" type="button" on:click={onAdvance} disabled={years < 1}
+      <button class="primary" type="button" on:click={onAdvance} disabled={years < 1 || $advancing}
         >Avancer</button
       >
     </div>
   {:else}
     <div class="controls">
+      <span class="spin-slot" aria-hidden={!$advancing}
+        >{#if $advancing}<Spinner size={20} />{/if}</span
+      >
       <label class="field-label" for="years">Avancer de</label>
       <input id="years" type="number" min="1" bind:value={years} style="width: {advW}" />
       <span class="unit">an(s)</span>
-      <button class="primary" type="button" on:click={onAdvance} disabled={years < 1}>
+      <button class="primary" type="button" on:click={onAdvance} disabled={years < 1 || $advancing}>
         Avancer
       </button>
     </div>
@@ -94,6 +102,16 @@
   }
   .controls input {
     width: 5rem;
+  }
+  /* Emplacement de largeur FIXE réservé au spinner (à gauche) : présent en permanence pour que le
+     reste des contrôles (dont le bouton « Avancer ») ne se déplace jamais selon la visibilité. */
+  .spin-slot {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
   }
   .unit {
     color: var(--fg-muted);

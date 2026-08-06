@@ -13,8 +13,10 @@ function makePopulation(n: number): Personne[] {
       especeId: i % 3 === 0 ? 'elfe' : 'humain',
       genreId: 'g-1',
       dateNaissance: `${String(year).padStart(4, '0')}-01-01`,
+      age: year,
       vivant: i % 2 === 0,
       raisonDeces: i % 2 === 0 ? null : 'âge',
+      immortel: false,
       parents: [],
       enfants: [],
       conjoints: [],
@@ -42,6 +44,8 @@ describe('Performance du filtrage (SC-002)', () => {
       traitPresence: null,
       powerPresence: 'none',
       statuses: new Set(['vivant']),
+      bornNafter: null,
+      bornBefore: null,
     };
     const start = performance.now();
     let total = 0;

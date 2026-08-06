@@ -7,8 +7,11 @@ clarifications de spec sont intégrées). Format : Décision / Rationale / Alter
 
 - **Décision** : Ajouter un champ `age: number` à `Personne`. Le tick incrémente `age` de +1 pour
   chaque individu **vivant** ; les morts ne sont pas incrémentés. À la naissance, `age = 0`. À la
-  résurrection, `age` reste tel quel (âge figé). Tous les points de lecture d'âge (fiche, liste, tri
-  âge, arbre) lisent `person.age` ; la génération reste **dérivée** de l'année de naissance.
+  résurrection, `age` reste tel quel (âge figé). Tous les points de lecture d'âge lisent `person.age`
+  — **y compris la reproduction** (âge max de reproduction dans `repro/candidates.ts` et âge moyen de
+  couple dans `time/tick.ts`) : l'éligibilité à la reproduction se fonde sur l'**âge vécu** (suivi),
+  pas sur `currentYear − annéeDeNaissance` (F1 de l'analyse). La génération reste **dérivée** de
+  l'année de naissance.
 - **Rationale** : l'âge est aujourd'hui `currentYear − yearOf(dateNaissance)` (`genesis/derived.ts`),
   impossible à geler à la mort ni à reprendre à l'âge figé (FR-005, clarification Q1). Un compteur
   suivi est la seule façon de dissocier « âge vécu » et « temps écoulé » tout en gardant la date de
