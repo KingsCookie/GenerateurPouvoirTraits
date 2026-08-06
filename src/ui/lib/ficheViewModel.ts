@@ -1,7 +1,6 @@
 // Modèle de vue PUR (aucune dépendance Svelte/DOM) : transforme une Personne + le catalogue
 // en données d'affichage. Testable en isolation (tests/unit/fiche-vm.test.ts).
 import {
-  computeAge,
   computeGeneration,
   powerLabel,
   traitTypeOf,
@@ -41,6 +40,7 @@ export interface FicheView {
   generation: number;
   vivant: boolean;
   raisonDeces: string | null;
+  immortel: boolean; // Feature 015 : état d'immortalité (case en fiche)
   pouvoirs: PouvoirView[];
   traitsActifs: TraitView[];
   traitsInactifs: TraitView[];
@@ -73,7 +73,7 @@ export function traitLabelOf(idx: Map<string, string>, traitId: string): string 
 export function buildListRow(
   person: Personne,
   catalog: Catalog,
-  currentYear: number,
+  _currentYear: number, // conservé pour la stabilité de signature ; l'âge vient de person.age (Feature 015)
   genesisYear: number,
 ) {
   return {
@@ -82,7 +82,7 @@ export function buildListRow(
     especeId: person.especeId,
     generation: computeGeneration(yearOf(person.dateNaissance), genesisYear),
     dateNaissance: person.dateNaissance,
-    age: computeAge(yearOf(person.dateNaissance), currentYear),
+    age: person.age, // âge suivi (Feature 015)
     vivant: person.vivant,
     // Étiquettes enrichies (Feature 010) : libellé + puissance + maîtrise (valeurs de la fiche).
     pouvoirs: person.pouvoirs.map((p) => ({
@@ -100,7 +100,7 @@ export function buildListRow(
 export function buildFicheView(
   person: Personne,
   catalog: Catalog,
-  currentYear: number,
+  _currentYear: number, // conservé pour la stabilité de signature ; l'âge vient de person.age (Feature 015)
   genesisYear: number,
   population: readonly Personne[] = [],
 ): FicheView {
@@ -140,10 +140,11 @@ export function buildFicheView(
     especeId: person.especeId,
     genreId: person.genreId,
     dateNaissance: person.dateNaissance,
-    age: computeAge(yearOf(person.dateNaissance), currentYear),
+    age: person.age, // âge suivi (Feature 015)
     generation: computeGeneration(yearOf(person.dateNaissance), genesisYear),
     vivant: person.vivant,
     raisonDeces: person.raisonDeces,
+    immortel: person.immortel,
     pouvoirs,
     traitsActifs,
     traitsInactifs,

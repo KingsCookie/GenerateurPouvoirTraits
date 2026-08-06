@@ -2,7 +2,7 @@
 // OU au sein d'une dimension non vide, ET entre dimensions renseignées (INV-G4). Aucune mutation
 // des entrées : renvoie un nouveau tableau (INV-G6).
 import type { Personne } from '../model/personne.js';
-import { computeAge, computeGeneration, yearOf } from '../genesis/derived.js';
+import { computeGeneration, yearOf } from '../genesis/derived.js';
 
 export type TraitScope = 'actifs' | 'inactifs' | 'tous';
 export type PowerPresence = 'any' | 'none' | null;
@@ -33,6 +33,12 @@ export interface FilterCriteria {
   powerPresence: PowerPresence;
   /** OU intra ; vide ⇒ ignoré. */
   statuses: Set<Statut>;
+  /**
+   * Filtres par **année de naissance** (Feature 015, bornes **inclusives**) ; `null` ⇒ inactif.
+   * Dès qu'au moins l'un des deux est non-null, le filtre `generations` est **ignoré** (exclusivité).
+   */
+  bornNafter: number | null; // « né après X » : année de naissance ≥ X
+  bornBefore: number | null; // « né avant Y » : année de naissance ≤ Y
 }
 
 export interface FilterContext {
@@ -40,8 +46,8 @@ export interface FilterContext {
   genesisYear: number; // origine du calcul de génération (§6.2, Feature 011)
 }
 
-/** Clé de tri d'une liste d'individus (Feature 010). */
-export type SortKey = 'nom' | 'naissance' | 'age';
+/** Clé de tri d'une liste d'individus (Feature 010 ; + puissance/maîtrise en Feature 015). */
+export type SortKey = 'nom' | 'naissance' | 'age' | 'puissance' | 'maitrise';
 /** Sens de tri. */
 export type SortDir = 'asc' | 'desc';
 
@@ -107,13 +113,21 @@ export function filterPopulation(
   ctx: FilterContext,
 ): Personne[] {
   const q = normalize(criteria.nameQuery.trim());
+  // Feature 015 : exclusivité génération ↔ filtres d'année. Si une borne d'année est active,
+  // le filtre par génération est **ignoré** (INV-F2).
+  const yearBoundsActive = criteria.bornNafter !== null || criteria.bornBefore !== null;
   const result = pop.filter((p) => {
     if (q && !normalize(p.nom).includes(q)) return false;
-    if (
+    const birthYear = yearOf(p.dateNaissance);
+    if (yearBoundsActive) {
+      if (criteria.bornNafter !== null && birthYear < criteria.bornNafter) return false; // né après X (≥)
+      if (criteria.bornBefore !== null && birthYear > criteria.bornBefore) return false; // né avant Y (≤)
+    } else if (
       criteria.generations.size > 0 &&
-      !criteria.generations.has(computeGeneration(yearOf(p.dateNaissance), ctx.genesisYear))
-    )
+      !criteria.generations.has(computeGeneration(birthYear, ctx.genesisYear))
+    ) {
       return false;
+    }
     if (criteria.especeIds.size > 0 && !criteria.especeIds.has(p.especeId)) return false;
     if (criteria.traitIds.size > 0 && !matchTrait(p, criteria.traitIds, criteria.traitScope))
       return false;
@@ -135,19 +149,36 @@ export function sortPopulation(
   pop: readonly Personne[],
   key: SortKey | null,
   dir: SortDir,
-  ctx: FilterContext,
+  _ctx: FilterContext,
 ): Personne[] {
   const arr = [...pop];
   if (key === null) return arr; // ordre d'entrée conservé (défaut)
   const sign = dir === 'desc' ? -1 : 1;
+
+  // Feature 015 — tris puissance/maîtrise : on classe selon le pouvoir **le plus extrême dans le
+  // sens du tri** (valeur la plus basse en croissant, la plus haute en décroissant). Les individus
+  // **sans pouvoir** sont **toujours en fin** de liste, quel que soit le sens (INV-S2/S3).
+  if (key === 'puissance' || key === 'maitrise') {
+    const withPow = arr.filter((p) => p.pouvoirs.length > 0);
+    const without = arr.filter((p) => p.pouvoirs.length === 0);
+    const keyVal = (p: Personne): number => {
+      const vals = p.pouvoirs.map((pw) => (key === 'puissance' ? pw.puissance : pw.maitrise));
+      return dir === 'asc' ? Math.min(...vals) : Math.max(...vals);
+    };
+    withPow.sort((a, b) => {
+      const primary = keyVal(a) - keyVal(b);
+      if (primary !== 0) return sign * primary;
+      return byBirthThenId(a, b); // départage stable, non inversé
+    });
+    without.sort(byBirthThenId);
+    return [...withPow, ...without];
+  }
+
   arr.sort((a, b) => {
     let primary = 0;
     if (key === 'nom') primary = normalize(a.nom).localeCompare(normalize(b.nom));
     else if (key === 'naissance') primary = byBirthThenId(a, b);
-    else
-      primary =
-        computeAge(yearOf(a.dateNaissance), ctx.currentYear) -
-        computeAge(yearOf(b.dateNaissance), ctx.currentYear);
+    else primary = a.age - b.age; // 'age' : âge suivi (Feature 015)
     if (primary !== 0) return sign * primary;
     return byBirthThenId(a, b); // départage stable, non inversé
   });

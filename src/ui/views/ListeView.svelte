@@ -170,7 +170,25 @@
               >Âge{sortIndic($listeSort, 'age')}</button
             >
           </span>
-          <span role="columnheader">Pouvoir(s)</span>
+          <span role="columnheader">
+            Pouvoir(s)
+            <button
+              type="button"
+              class="colhdr pm-sort"
+              data-sort={ariaSortOf($listeSort, 'puissance')}
+              aria-label="Trier par puissance"
+              on:click={() => cycleSort('population', 'puissance')}
+              >P{sortIndic($listeSort, 'puissance')}</button
+            >
+            <button
+              type="button"
+              class="colhdr pm-sort"
+              data-sort={ariaSortOf($listeSort, 'maitrise')}
+              aria-label="Trier par maîtrise"
+              on:click={() => cycleSort('population', 'maitrise')}
+              >M{sortIndic($listeSort, 'maitrise')}</button
+            >
+          </span>
         </div>
         {#each pageInfo.pageItems as row (row.id)}
           <div
@@ -259,6 +277,19 @@
   }
   .colhdr:hover {
     color: var(--accent-text);
+  }
+  /* Boutons de tri puissance/maîtrise dans l'en-tête « Pouvoir(s) » (Feature 015). */
+  .pm-sort {
+    margin-left: 0.5rem;
+    padding: 0 0.3rem;
+    border: 1px solid var(--border);
+    border-radius: var(--chip-radius);
+    font-size: 0.8em;
+  }
+  .pm-sort[data-sort='ascending'],
+  .pm-sort[data-sort='descending'] {
+    color: var(--accent-text);
+    border-color: var(--accent);
   }
   /* Mentions puissance/maîtrise dans une étiquette de pouvoir. */
   .pm {

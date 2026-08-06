@@ -95,8 +95,10 @@ export function reproduce(
     especeId,
     genreId,
     dateNaissance,
+    age: 0, // nouveau-né : 0 an (§6.5)
     vivant: true,
     raisonDeces: null,
+    immortel: false,
     parents: parents.map((p) => p.id),
     enfants: [],
     conjoints: [],

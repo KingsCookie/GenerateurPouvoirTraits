@@ -1,28 +1,33 @@
 <!-- SPECKIT START -->
-## Feature active : 014-corrections-jauges-listes
+## Feature active : 015-esperance-vie-tris-filtres
 
-- **Plan** : `specs/014-corrections-jauges-listes/plan.md` (contexte technique, Constitution Check, structure)
-- **Spec** : `specs/014-corrections-jauges-listes/spec.md` (4 user stories P1→P4, clarification 2026-08-06)
-- **Recherche / décisions** : `specs/014-corrections-jauges-listes/research.md` (R1→R6 : composant Gauge, mapping tokens, animations bornées, dates, bulle extensible)
-- **Modèle de données** : `specs/014-corrections-jauges-listes/data-model.md` (état de présentation `GaugeState` dérivé, non persisté ; aucune entité)
-- **Contrats** : `specs/014-corrections-jauges-listes/contracts/ui-contract.md` (invariants INV-J1→19)
-- **Référence design** : `rsrc/jauges-etats-extremes.md` (règles d'état rompu/normal/surchargé, CSS repère à remapper)
-- **Périmètre** : lot de **corrections UI**, **cible v0.13.2** (seul le dernier chiffre change). UI uniquement
-  (`src/ui`). (1) **Composant `Gauge.svelte` partagé** + fonction pure `gaugeState()` dans `src/ui/lib` (testée
-  Vitest, bornes -1/0/10/11) : 3 états `rompu`(v<0)/`normal`(0≤v≤10)/`surchargé`(v>10), couleurs **remappées sur
-  tokens** (dégradé accent→accent-text, halo `--year-shadow`, danger). (2) **Fiche mobile ET desktop** utilise
-  `<Gauge>` (remplace barres mobiles + texte P/M desktop). (3) **Population mobile** : date de naissance
-  **complète** (`row.dateNaissance`, pas `yearOf`). (4) **Sandbox mobile** : ligne alignée sur Population + puces
-  P/M + bouton « ⋯ » ; **tap corps = aucune navigation** (clarif. option A). (5) **Bulle « Avancer »** extensible
-  (largeur = f(longueur), max borné pour garder la barre sur une ligne). **CONTRAINTES : `src/core` intact ;
-  tokens seule source, aucune valeur en dur ; desktop ≥760 inchangé SAUF ajout volontaire des jauges dans la
-  fiche (FR-009/SC-008) ; animations coupées par `prefers-reduced-motion` ; état `surchargé` ne déborde jamais du
-  rail.**
-- **Actions Constitution** : Principe IV → fonction d'état en `src/ui/lib` (présentation), **zéro modif `src/core`**.
-  Principe IX → §7.2 (P/M) **inchangé**, seul l'affichage change ; `rsrc/DescriptionProjet.md` non modifié.
-  Principe VI → aucun format/persistance touché. **Aucune dépendance ajoutée** ; déterminisme préservé ;
-  validation par **checklist manuelle** (`npm run test` + `npm run lint` verts, + test unitaire `gauge`).
-- Features livrées : 13 (`specs/013-refonte-ui-mobile/`) refonte UI mobile (direction 1a) sous `@media (max-width:760px)` :
+- **Plan** : `specs/015-esperance-vie-tris-filtres/plan.md` (contexte technique, Constitution Check 10/10 PASS, structure)
+- **Spec** : `specs/015-esperance-vie-tris-filtres/spec.md` (5 user stories P1→P5, 5 clarifications 2026-08-06)
+- **Recherche / décisions** : `specs/015-esperance-vie-tris-filtres/research.md` (R1→R9 : âge stocké, params espèce, ordre du tick, déterminisme mort, migration v5, tris P/M, filtres année, yield spinner, composant Spinner)
+- **Modèle de données** : `specs/015-esperance-vie-tris-filtres/data-model.md` (Espèce +`esperanceVie`/`mortNaturellePct` ; Personne +`age` suivi/+`immortel` ; SortKey/FilterCriteria étendus ; `advancing`)
+- **Contrats** : `specs/015-esperance-vie-tris-filtres/contracts/ui-contract.md` (invariants INV-D/A/R/S/F/L/P/PE)
+- **Quickstart** : `specs/015-esperance-vie-tris-filtres/quickstart.md` (tests + checklist manuelle mobile+desktop)
+- **Périmètre** : nouvelle capacité, **cible v0.14.0**. **Cœur + UI**. (1) **Mort naturelle par espèce** :
+  `esperanceVie`+`mortNaturellePct` (défauts humain **60/10**) ; nouvelle étape de `tick` (vieillissement explicite
+  puis mort naturelle **en dernier**, tirage seedé pour les seuls éligibles vivant/non-immortel/âge≥espérance ;
+  cause « mort naturelle »). (2) **Âge = compteur stocké** (`Personne.age`) +1/an, **gelé à la mort**, repris tel
+  quel à la résurrection ; **génération dérivée de la date de naissance (invariante)**. (3) **Fiche** : `immortel`
+  (défaut faux) + fonctions cœur `resurrect`/`setImmortal` ; boutons **Ressusciter** + case **Immortel** (mobile ET
+  desktop). (4) **Tris puissance & maîtrise** (`SortKey`+`sortPopulation` : pouvoir le plus extrême, **sans-pouvoir
+  en fin**). (5) **Filtres né après X / né avant Y** (bornes **inclusives**, **désactivent** le filtre génération).
+  (6) **Spinner** « avancer » (flèche circulaire, l'UI **cède une frame** avant le calcul synchrone).
+  **CONTRAINTES : logique domaine en `src/core` pur (RNG en paramètre) ; UI = présentation seule ; `FORMAT_VERSION`
+  4→5 + migrations (immortel=faux, age recomposé, champs espèce par défaut) ; tokens seule source ; parité
+  mobile/desktop (seuil 760) ; `prefers-reduced-motion` coupe la rotation du spinner ; déterminisme préservé.**
+- **Actions Constitution** : Principe IX → `rsrc/DescriptionProjet.md`/`.adoc` **déjà mis à jour avec autorisation
+  de l'auteur** (§3.3, §6.5–6.7, §8.1–8.4, §9.4). Principe IV → mort/âge/résurrection/immortalité/tris/filtres en
+  `src/core` (purs). Principe V → tests Vitest seed-fixe (tick, death, sort, filter, state). Principe VI →
+  versionnage + migrations. **Aucune dépendance ajoutée**.
+- Features livrées : 14 (`specs/014-corrections-jauges-listes/`) lot corrections UI : composant `Gauge.svelte`
+  partagé + `gaugeState()` (états rompu/normal/surchargé, tokens), jauges en fiche mobile+desktop, date complète
+  Population mobile, ligne Sandbox alignée + « ⋯ », bulle « Avancer » extensible — v0.13.2 ; puis fix §7.2 arrondi
+  P/M (départage .5 aléatoire seedé, équiprobabilité 0/11) — v0.13.3→v0.13.4 ;
+  13 (`specs/013-refonte-ui-mobile/`) refonte UI mobile (direction 1a) sous `@media (max-width:760px)` :
   chrome 2 rangées, Population/Sandbox en **lignes**, panneau Filtres plein écran, Fiche **identité d'abord** +
   barres P/M hors-barème, Paramètres **cartes à lignes**, `MobileSheet` réutilisable, seuil unique 760 ; + fix
   BUG-001 (débordement section Résilience en mobile) — v0.13.1 ;

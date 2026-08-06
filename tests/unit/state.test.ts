@@ -455,8 +455,8 @@ describe('US3 — genesisYear & migration v3→v4 (Feature 011)', () => {
 // --- Feature 7 : journal d'événements daté (history) ---
 
 describe('Journal d’événements (Feature 7)', () => {
-  it('FORMAT_VERSION vaut 4', () => {
-    expect(FORMAT_VERSION).toBe(4);
+  it('FORMAT_VERSION vaut 5', () => {
+    expect(FORMAT_VERSION).toBe(5);
   });
 
   it('history survit au round-trip serializeFull → parseImport', () => {
@@ -489,6 +489,34 @@ describe('Journal d’événements (Feature 7)', () => {
       // mergeData restaure history sur un état hôte.
       const host = createInitialState({ seed: '1' });
       expect(mergeData(host, res.value.data).history).toEqual(withHistory.history);
+    }
+  });
+
+  it('migration v4→v5 (Feature 015) : immortel=faux, âge recomposé, espèce 60/10', () => {
+    // Part d'un état v5 puis **retire** les champs Feature 015 pour simuler un fichier v4.
+    const base = sampleState(0x515n);
+    const raw = JSON.parse(serializeFull({ ...base, currentYear: 50 })) as Record<string, unknown>;
+    raw.formatVersion = 4;
+    for (const p of raw.population as Record<string, unknown>[]) {
+      delete p.age;
+      delete p.immortel;
+    }
+    for (const e of raw.especes as Record<string, unknown>[]) {
+      delete e.esperanceVie;
+      delete e.mortNaturellePct;
+    }
+    const res = parseImport(JSON.stringify(raw));
+    expect(res.ok).toBe(true);
+    if (!res.ok || res.value.kind !== 'full') return;
+    const st = res.value.state;
+    for (const p of st.population) {
+      expect(p.immortel).toBe(false);
+      // Genèse à l'année 0 (birthYear 0) ⇒ âge recomposé = currentYear − 0 = 50.
+      expect(p.age).toBe(50);
+    }
+    for (const e of st.especes) {
+      expect(e.esperanceVie).toBe(60);
+      expect(e.mortNaturellePct).toBe(10);
     }
   });
 

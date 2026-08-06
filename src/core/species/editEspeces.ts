@@ -25,6 +25,9 @@ function defaultReproParams(): Omit<Espece, 'id' | 'label' | 'genres'> {
     litterMax: 4,
     litterExtraPct: 15,
     divorcePct: 0,
+    // Mort naturelle (Feature 015) : défauts alignés sur l'humain.
+    esperanceVie: 60,
+    mortNaturellePct: 10,
   };
 }
 
@@ -123,10 +126,14 @@ export function validateEspece(e: Espece): ValidationResult {
   if (e.litterMin < 0 || e.litterMax < e.litterMin) {
     return { ok: false, error: 'La portée doit vérifier : 0 ≤ minimum (M) ≤ maximum (N).' };
   }
+  if (!Number.isInteger(e.esperanceVie) || e.esperanceVie < 0) {
+    return { ok: false, error: "L'espérance de vie doit être un entier ≥ 0." };
+  }
   const pcts: [number, string][] = [
     [e.reproPeakPct, 'la probabilité au pic'],
     [e.litterExtraPct, "la chance d'enfant supplémentaire"],
     [e.divorcePct, 'le taux de divorce'],
+    [e.mortNaturellePct, 'le taux de mort naturelle'],
   ];
   for (const [v, name] of pcts) {
     if (!Number.isFinite(v) || v < 0 || v > 100) {

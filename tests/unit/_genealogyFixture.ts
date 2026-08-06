@@ -27,8 +27,11 @@ function mk(p: PartialPersonne): Personne {
     especeId: p.especeId ?? 'humain',
     genreId: 'g-1',
     dateNaissance: p.dateNaissance,
+    // Âge suivi (Feature 015) = valeur dérivée à currentYear=100 (les tests arbre/filtre l'utilisent).
+    age: 100 - Number(p.dateNaissance.split('-')[0]),
     vivant: p.vivant ?? true,
     raisonDeces: p.vivant === false ? 'âge' : null,
+    immortel: false,
     parents: p.parents ?? [],
     enfants: p.enfants ?? [],
     conjoints: p.conjoints ?? [],

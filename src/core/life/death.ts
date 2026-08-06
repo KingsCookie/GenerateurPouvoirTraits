@@ -41,3 +41,39 @@ export function kill(state: AppState, personId: string, cause: string): KillResu
   const history = [...state.history, deathEvent(personId, state.currentYear)];
   return { ok: true, state: { ...state, population, couples, history } };
 }
+
+/**
+ * Résurrection (Feature 015, §6.7) : ramène un individu **décédé** à la vie **à l'âge qu'il avait**
+ * (âge suivi inchangé), efface la `raison du décès`. N'utilise **aucun** aléatoire. Refuse si
+ * l'individu est introuvable ou **déjà vivant** (FR-013). Ne recrée pas de couple (les liens
+ * conjugaux dissous à la mort restent « ex »).
+ */
+export function resurrect(state: AppState, personId: string): KillResult {
+  const target = state.population.find((p) => p.id === personId);
+  if (!target) {
+    return { ok: false, error: `Individu introuvable : ${personId}.` };
+  }
+  if (target.vivant) {
+    return { ok: false, error: 'Cet individu est déjà vivant.' };
+  }
+  const population = state.population.map((p) =>
+    p.id === personId ? { ...p, vivant: true, raisonDeces: null } : p,
+  );
+  return { ok: true, state: { ...state, population } };
+}
+
+/**
+ * Immortalité (Feature 015, §6.7) : bascule l'attribut `immortel`. Un immortel ne peut pas mourir de
+ * mort naturelle (cf. `tick`), mais reste tuable manuellement (`kill`). Aucun aléatoire. Refuse si
+ * l'individu est introuvable.
+ */
+export function setImmortal(state: AppState, personId: string, value: boolean): KillResult {
+  const target = state.population.find((p) => p.id === personId);
+  if (!target) {
+    return { ok: false, error: `Individu introuvable : ${personId}.` };
+  }
+  const population = state.population.map((p) =>
+    p.id === personId ? { ...p, immortel: value } : p,
+  );
+  return { ok: true, state: { ...state, population } };
+}

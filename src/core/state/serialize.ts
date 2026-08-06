@@ -8,13 +8,14 @@ import type { Parameters, ResilienceOverrides } from '../params/parameters.js';
 import { defaultParameters } from '../params/parameters.js';
 import { defaultCatalog, defaultEspeces } from '../catalog/defaultCatalog.js';
 import { createRng } from '../rng/rng.js';
-import { yearOf } from '../genesis/derived.js';
+import { yearOf, computeAge } from '../genesis/derived.js';
 
 // v1 (Features 1-2) → v2 (Feature 3 : currentYear, couples, état du RNG) → v3 (Feature 7 : journal
 // d'événements daté `history`) → v4 (Feature 011 : `genesisYear`, année de la genèse, origine du
-// calcul de génération). Compatibilité ascendante. Constante UNIQUE partagée par les trois types
+// calcul de génération) → v5 (Feature 015 : `Personne.age`/`Personne.immortel`, `Espece.esperanceVie`/
+// `Espece.mortNaturellePct`). Compatibilité ascendante. Constante UNIQUE partagée par les trois types
 // de fichiers (config/data/full) — Feature 6.
-export const FORMAT_VERSION = 4;
+export const FORMAT_VERSION = 5;
 
 export interface AppState {
   formatVersion: number;
@@ -215,6 +216,34 @@ export function fallbackGenesisYear(population: Personne[], parameters?: Paramet
   return min ?? parameters?.birthYear ?? 0;
 }
 
+/**
+ * Défauts Feature 015 sur les espèces (fichier < v5) : `esperanceVie` (60) et `mortNaturellePct`
+ * (10) absents ⇒ valeurs par défaut « humain ». Mute la liste d'espèces fournie.
+ */
+function defaultEspeceLifeFields(especes: unknown): void {
+  if (!Array.isArray(especes)) return;
+  for (const e of especes) {
+    if (!isObject(e)) continue;
+    if (typeof e.esperanceVie !== 'number') e.esperanceVie = 60;
+    if (typeof e.mortNaturellePct !== 'number') e.mortNaturellePct = 10;
+  }
+}
+
+/**
+ * Défauts Feature 015 sur les personnes (fichier < v5) : `immortel` (faux) et `age` (recomposé par
+ * `computeAge(annéeDeNaissance, currentYear)`) absents ⇒ valeurs par défaut. Mute la population.
+ */
+function defaultPersonLifeFields(population: unknown, currentYear: number): void {
+  if (!Array.isArray(population)) return;
+  for (const p of population) {
+    if (!isObject(p)) continue;
+    if (typeof p.immortel !== 'boolean') p.immortel = false;
+    if (typeof p.age !== 'number') {
+      p.age = computeAge(yearOf(String(p.dateNaissance ?? '0-01-01')), currentYear);
+    }
+  }
+}
+
 /** Tolère un `Trait.weight` absent/undefined (⇒ `null` = hérite du poids du type, §9.1). */
 function defaultTraitWeights(catalog: Catalog): void {
   for (const type of TRAIT_TYPES) {
@@ -236,6 +265,8 @@ function validateConfigInto(parsed: Record<string, unknown>): string | null {
   defaultTraitWeights(parsed.catalog as unknown as Catalog);
   if (!Array.isArray(parsed.especes) || parsed.especes.length === 0) {
     parsed.especes = defaultEspeces();
+  } else {
+    defaultEspeceLifeFields(parsed.especes); // Feature 015 : espérance de vie / % mort naturelle
   }
   return null;
 }
@@ -251,6 +282,7 @@ function validateDataInto(parsed: Record<string, unknown>, seedFallback: string)
     parsed.rngState = createRng(BigInt(seedFallback)).getState();
   }
   if (!Array.isArray(parsed.history)) parsed.history = []; // Feature 7 : rétro-compat (INV-S8).
+  defaultPersonLifeFields(parsed.population, parsed.currentYear as number); // Feature 015 (v5)
   return null;
 }
 
@@ -356,5 +388,6 @@ export function parseImport(json: string): Result<ParsedImport> {
   if (!Array.isArray(data.couples)) data.couples = [];
   if (!Array.isArray(data.rngState) || data.rngState.length !== 4) data.rngState = [];
   if (!Array.isArray(data.history)) data.history = []; // Feature 7 : rétro-compat (INV-S8).
+  defaultPersonLifeFields(data.population, data.currentYear as number); // Feature 015 (v5)
   return { ok: true, value: { kind: 'data', data: parsed as unknown as DataState } };
 }

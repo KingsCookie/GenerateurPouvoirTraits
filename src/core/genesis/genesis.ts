@@ -43,8 +43,10 @@ export function generateInitialPopulation(
       especeId: espece.id,
       genreId,
       dateNaissance,
+      age: 0, // genèse : tout le monde naît à 0 an (§6.5)
       vivant: true,
       raisonDeces: null,
+      immortel: false,
       parents: [],
       enfants: [],
       conjoints: [],

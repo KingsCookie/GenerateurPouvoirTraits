@@ -22,4 +22,8 @@ export interface Espece {
   litterMax: number; // N — plafond (≥ M)
   litterExtraPct: number; // X — chance (%) d'un enfant supplémentaire [0..100]
   divorcePct: number; // chance (%) de divorce par an et par couple [0..100]
+
+  // --- Mort naturelle (Feature 015, §6.7 / §9.4). ---
+  esperanceVie: number; // âge (entier ≥ 0) à partir duquel la mort naturelle devient possible
+  mortNaturellePct: number; // chance (%) de mort naturelle par an au-delà de l'espérance [0..100]
 }

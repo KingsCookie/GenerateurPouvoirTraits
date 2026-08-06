@@ -8,6 +8,8 @@
     catalog,
     backToList,
     killPerson,
+    resurrectPerson,
+    setImmortal,
     setCoupleReproPct,
     selectPerson,
     goToArbre,
@@ -59,6 +61,19 @@
       cause = '';
       killSheetOpen = false;
     }
+  }
+
+  // Résurrection (Feature 015) : ramène un décédé à la vie à son âge figé.
+  function onResurrect() {
+    if (!$selectedPerson) return;
+    killError = resurrectPerson($selectedPerson.id);
+    if (!killError) killSheetOpen = false;
+  }
+
+  // Immortalité (Feature 015) : bascule la case « Immortel » de l'individu.
+  function onToggleImmortal(e: Event) {
+    if (!$selectedPerson) return;
+    setImmortal($selectedPerson.id, (e.target as HTMLInputElement).checked);
   }
 
   // Édition du % de reproduction du couple (vide ⇒ hérité de la gaussienne).
@@ -224,8 +239,16 @@
       >
       {#if fiche.vivant}
         <button type="button" class="danger" on:click={() => (killSheetOpen = true)}>Tuer…</button>
+      {:else}
+        <button type="button" class="contour resurrect" on:click={onResurrect}>Ressusciter</button>
       {/if}
     </div>
+
+    <label class="m-immortel">
+      <input type="checkbox" checked={fiche.immortel} on:change={onToggleImmortal} />
+      <span>Immortel <span class="muted">(insensible à la mort naturelle)</span></span>
+    </label>
+    {#if killError && !killSheetOpen}<p class="error-msg" role="alert">{killError}</p>{/if}
 
     {#if killSheetOpen}
       <MobileSheet title="Confirmer le décès" onClose={() => (killSheetOpen = false)}>
@@ -348,16 +371,31 @@
             </div>
           {/if}
 
-          {#if fiche.vivant}
-            <div class="kill">
-              <label class="field-label" for="cause">Cause du décès</label>
-              <div class="kill-row">
-                <input id="cause" type="text" bind:value={cause} placeholder="cause obligatoire" />
-                <button type="button" class="danger" on:click={onKill}>Tuer cet individu</button>
+          <div class="lifecycle">
+            {#if fiche.vivant}
+              <div class="kill">
+                <label class="field-label" for="cause">Cause du décès</label>
+                <div class="kill-row">
+                  <input
+                    id="cause"
+                    type="text"
+                    bind:value={cause}
+                    placeholder="cause obligatoire"
+                  />
+                  <button type="button" class="danger" on:click={onKill}>Tuer cet individu</button>
+                </div>
               </div>
-              {#if killError}<p class="error-msg" role="alert">{killError}</p>{/if}
-            </div>
-          {/if}
+            {:else}
+              <button type="button" class="contour resurrect" on:click={onResurrect}
+                >Ressusciter</button
+              >
+            {/if}
+            <label class="immortel-row">
+              <input type="checkbox" checked={fiche.immortel} on:change={onToggleImmortal} />
+              <span>Immortel <span class="muted">(insensible à la mort naturelle)</span></span>
+            </label>
+            {#if killError}<p class="error-msg" role="alert">{killError}</p>{/if}
+          </div>
         </div>
       </div>
     </div>
@@ -588,6 +626,22 @@
   .kill-row input {
     flex: 1;
   }
+  /* Cycle de vie (Feature 015) : Tuer / Ressusciter / Immortel. */
+  .lifecycle {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .immortel-row,
+  .m-immortel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+  }
+  .resurrect {
+    align-self: flex-start;
+  }
   .danger {
     background: transparent;
     border: 1px solid var(--danger);
@@ -784,8 +838,13 @@
     flex: 1;
     min-height: 44px;
   }
-  .m-actionbar .danger {
+  .m-actionbar .danger,
+  .m-actionbar .resurrect {
     min-height: 44px;
+  }
+  .m-immortel {
+    padding: 8px 12px;
+    border-top: 1px solid var(--border);
   }
   .confirm-kill {
     width: 100%;

@@ -53,6 +53,9 @@
     { key: 'litterMax', label: 'Portée max (N)', min: 0 },
     { key: 'litterExtraPct', label: 'Enfant suppl. (X %)', min: 0, max: 100 },
     { key: 'divorcePct', label: 'Divorce (%/an)', min: 0, max: 100 },
+    // Mort naturelle (Feature 015, §9.4).
+    { key: 'esperanceVie', label: 'Espérance de vie (ans)', min: 0 },
+    { key: 'mortNaturellePct', label: 'Mort naturelle (%/an)', min: 0, max: 100 },
   ];
 </script>
 

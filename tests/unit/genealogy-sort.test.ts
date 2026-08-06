@@ -1,26 +1,35 @@
 import { describe, it, expect } from 'vitest';
 import { sortPopulation, type FilterContext } from '../../src/core/genealogy/filter.js';
 import type { Personne } from '../../src/core/model/personne.js';
+import type { Pouvoir } from '../../src/core/model/pouvoir.js';
 
 // Tri pur, déterministe (Feature 010). Population construite à la main pour contrôler noms/dates.
 const ctx: FilterContext = { currentYear: 100, genesisYear: 0 };
 
-function mk(id: string, nom: string, dateNaissance: string): Personne {
+function mk(id: string, nom: string, dateNaissance: string, pouvoirs: Pouvoir[] = []): Personne {
   return {
     id,
     nom,
     especeId: 'humain',
     genreId: 'g-1',
     dateNaissance,
+    // Âge suivi (Feature 015) = valeur dérivée à currentYear=100 (comportement historique du tri âge).
+    age: 100 - Number(dateNaissance.split('-')[0]),
     vivant: true,
     raisonDeces: null,
+    immortel: false,
     parents: [],
     enfants: [],
     conjoints: [],
     adn: { traits: [] },
-    pouvoirs: [],
+    pouvoirs,
     notes: null,
   };
+}
+
+/** Pouvoir minimal avec puissance/maîtrise donnés (pour les tris P/M). */
+function pow(puissance: number, maitrise: number): Pouvoir {
+  return { id: 'x', label: 'x', template: 'DERIVE', traitIds: [], puissance, maitrise };
 }
 
 // Ordre « par défaut » = date de naissance puis id (comme filterPopulation).
@@ -65,5 +74,30 @@ describe('sortPopulation (Feature 010)', () => {
     const order = ids(base).join(',');
     sortPopulation(base, 'nom', 'asc', ctx);
     expect(ids(base).join(',')).toBe(order);
+  });
+});
+
+describe('sortPopulation — tris puissance/maîtrise (Feature 015, US3)', () => {
+  // p1 : pouvoirs P{2,9} ; p2 : P{5} ; p3 : sans pouvoir. Dates distinctes pour un ordre stable.
+  const multi = pow(2, 3);
+  const p1 = mk('p1', 'A', '0001-01-01', [multi, pow(9, 1)]);
+  const p2 = mk('p2', 'B', '0002-01-01', [pow(5, 5)]);
+  const p3 = mk('p3', 'C', '0003-01-01', []); // sans pouvoir
+
+  it('croissant : classe le multi-pouvoirs sur sa valeur la plus basse ; sans-pouvoir en fin', () => {
+    // Puissance : p1→min(2,9)=2, p2→5. Ordre croissant : p1, p2, puis p3 (sans pouvoir) en fin.
+    expect(ids(sortPopulation([p3, p2, p1], 'puissance', 'asc', ctx))).toEqual(['p1', 'p2', 'p3']);
+  });
+
+  it('décroissant : classe le multi-pouvoirs sur sa valeur la plus haute ; sans-pouvoir en fin', () => {
+    // Puissance : p1→max(2,9)=9, p2→5. Ordre décroissant : p1 (9), p2 (5), puis p3 en fin (jamais en tête).
+    expect(ids(sortPopulation([p3, p1, p2], 'puissance', 'desc', ctx))).toEqual(['p1', 'p2', 'p3']);
+  });
+
+  it('maîtrise : même règle d’extrême et sans-pouvoir en fin', () => {
+    // Maîtrise : p1→min(3,1)=1 (asc), p2→5. Croissant : p1(1), p2(5), p3 fin.
+    expect(ids(sortPopulation([p2, p3, p1], 'maitrise', 'asc', ctx))).toEqual(['p1', 'p2', 'p3']);
+    // Décroissant : p1→max(3,1)=3, p2→5 ⇒ p2(5), p1(3), p3 fin.
+    expect(ids(sortPopulation([p3, p1, p2], 'maitrise', 'desc', ctx))).toEqual(['p2', 'p1', 'p3']);
   });
 });
