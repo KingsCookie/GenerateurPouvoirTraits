@@ -49,24 +49,42 @@ describe('§7.2 — héritage P/M : mapping i mod n', () => {
   });
 });
 
-describe('§7.2 — arrondi « demi vers le pair » (bancaire)', () => {
-  it('moyenne 4,5 ⇒ 4 (pair le plus proche)', () => {
+describe('§7.2 — arrondi de la moyenne : départage aléatoire (seedé) des .5', () => {
+  // À une égalité exacte (.5), roundMean consomme un nextFloat : < 0,5 ⇒ bas (f), ≥ 0,5 ⇒ haut (f+1).
+  // Avec MEAN (A=0, B=0, C=100), chaque valeur consomme donc [départage, roll] ; roll<1 ⇒ cas C = m.
+  it('moyenne 4,5, départage « bas » ⇒ 4', () => {
     const a = parent([pow(4, 4)]);
     const b = parent([pow(5, 5)]);
-    expect(inheritStats(0, [a, b], MEAN, meanRng())).toEqual({ puissance: 4, maitrise: 4 }); // 4,5→4
+    // puissance : [0.2 (bas→4), 0.5 (roll)] ; maîtrise : [0.2 (bas→4), 0.5 (roll)]
+    const rng = fakeRng({ floats: [0.2, 0.5, 0.2, 0.5] });
+    expect(inheritStats(0, [a, b], MEAN, rng)).toEqual({ puissance: 4, maitrise: 4 });
   });
 
-  it('moyenne 5,5 ⇒ 6 (pair le plus proche)', () => {
+  it('moyenne 4,5, départage « haut » ⇒ 5', () => {
+    const a = parent([pow(4, 4)]);
+    const b = parent([pow(5, 5)]);
+    const rng = fakeRng({ floats: [0.8, 0.5, 0.8, 0.5] });
+    expect(inheritStats(0, [a, b], MEAN, rng)).toEqual({ puissance: 5, maitrise: 5 });
+  });
+
+  it('moyenne 5,5, départage « bas » ⇒ 5 / « haut » ⇒ 6', () => {
     const a = parent([pow(5, 5)]);
     const b = parent([pow(6, 6)]);
-    expect(inheritStats(0, [a, b], MEAN, meanRng())).toEqual({ puissance: 6, maitrise: 6 }); // 5,5→6
+    expect(inheritStats(0, [a, b], MEAN, fakeRng({ floats: [0.1, 0.5, 0.9, 0.5] }))).toEqual({
+      puissance: 5, // départage bas
+      maitrise: 6, // départage haut
+    });
   });
 
-  it('moyenne 4,33 ⇒ 4', () => {
+  it('moyenne 4,33 (pas une égalité) ⇒ 4, sans tirage de départage', () => {
     const a = parent([pow(4, 4)]);
     const b = parent([pow(4, 4)]);
     const c = parent([pow(5, 5)]);
-    expect(inheritStats(0, [a, b, c], MEAN, meanRng())).toEqual({ puissance: 4, maitrise: 4 });
+    // pas d'égalité ⇒ aucun départage : un seul float (roll) par valeur suffit
+    expect(inheritStats(0, [a, b, c], MEAN, fakeRng({ floats: [0.5, 0.5] }))).toEqual({
+      puissance: 4,
+      maitrise: 4,
+    });
   });
 });
 

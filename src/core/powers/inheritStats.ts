@@ -47,25 +47,26 @@ function mean(values: number[]): number {
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
-// Arrondi §7.2 « demi vers le pair » (arrondi bancaire) : à l'entier le plus proche ; en cas
-// d'égalité exacte (partie décimale = 0,5), on arrondit vers l'entier PAIR le plus proche.
-// Choix symétrique autour du centre du barème : il supprime le biais vers le haut de l'ancien
-// `floor(x + 0,5)` (qui rendait les dépassements hauts, ex. 11, bien plus fréquents que les bas,
-// ex. 0). Exemples : 4,5 → 4 ; 5,5 → 6 ; 9,5 → 10 ; 0,5 → 0 ; −0,5 → 0.
-function roundMean(x: number): number {
+// Arrondi §7.2 : à l'entier le plus proche ; en cas d'**égalité exacte** (partie décimale = 0,5),
+// le départage est **aléatoire 50/50 via la seed** (`rng`). Ce départage symétrique supprime tout
+// biais directionnel : les dépassements bas (ex. 0) et hauts (ex. 11) deviennent équiprobables.
+// (Un arrondi « toujours vers le haut » ou « vers le pair » laissait un biais vers le haut.)
+// `Math.floor` garantit `d ∈ [0,1)` pour tout signe ⇒ les deux candidats sont toujours `f` et `f+1`.
+function roundMean(x: number, rng: Rng): number {
   const f = Math.floor(x);
   const d = x - f;
   if (d < 0.5) return f;
   if (d > 0.5) return f + 1;
-  return f % 2 === 0 ? f : f + 1;
+  return rng.nextFloat() < 0.5 ? f : f + 1;
 }
 
 /**
  * Tire la valeur finale (§7.2) : A % nouvelle valeur 1-10 (bornée) / B % moy−1 / C % moy / B % moy+1.
- * L'ordre des tirages est fixe : sélection du cas, puis (si cas A) tirage de la valeur.
+ * Ordre des tirages (fixe) : d'abord l'arrondi de la moyenne (qui consomme un tirage **uniquement**
+ * en cas d'égalité exacte à .5), puis la sélection du cas, puis (si cas A) le tirage de la valeur.
  */
 function drawStat(rawMean: number, params: Parameters, rng: Rng): number {
-  const m = roundMean(rawMean);
+  const m = roundMean(rawMean, rng);
   const A = statA(params);
   const B = params.statB;
   const C = params.statC;
