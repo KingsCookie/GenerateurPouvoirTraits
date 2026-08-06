@@ -23,7 +23,6 @@
     filterPopulation,
     lastGeneration,
     sortPopulation,
-    yearOf,
     type SortKey,
   } from '../../core/index.js';
 
@@ -101,7 +100,7 @@
                   {row.nom}{#if !row.vivant}<span class="dead" title="décédé">†</span>{/if}
                 </span>
                 <span class="mmeta"
-                  >an {yearOf(row.dateNaissance)} · {row.age} ans · {row.especeId} · g{row.generation}</span
+                  >{row.dateNaissance} · {row.age} ans · {row.especeId} · g{row.generation}</span
                 >
                 <span class="mpowers">
                   {#if row.pouvoirs.length === 0}

@@ -13,6 +13,17 @@
   function inc() {
     years += 1;
   }
+
+  // Largeur extensible de la bulle « Avancer » (Feature 014) : grandit avec le nombre de caractères,
+  // avec **une marge d'un caractère** pour que le chiffre qu'on vient de taper tienne immédiatement
+  // (sinon la bulle a « un caractère de retard » et provoque un scroll horizontal). Min ~2, max borné :
+  // le débordement (donc le scroll) n'arrive qu'une fois le maximum atteint.
+  $: advChars = Math.min(6, Math.max(2, String(years ?? '').length)) + 1;
+  // Mobile : stepper sans flèches natives, texte centré en mono → marge caret un peu plus large
+  // pour ne pas rogner la fin du dernier chiffre.
+  $: stepW = `calc(${advChars}ch + 16px)`;
+  // Desktop : input numérique avec flèches natives → marge supplémentaire pour ne pas rogner.
+  $: advW = `calc(${advChars}ch + 30px)`;
 </script>
 
 <div class="time-bar" class:mobile={$isMobile} role="region" aria-label="Avancement du temps">
@@ -24,7 +35,13 @@
     <div class="controls">
       <div class="stepper">
         <button type="button" on:click={dec} disabled={years <= 1} aria-label="Diminuer">−</button>
-        <input type="number" min="1" bind:value={years} aria-label="Nombre d'années à avancer" />
+        <input
+          type="number"
+          min="1"
+          bind:value={years}
+          style="width: {stepW}"
+          aria-label="Nombre d'années à avancer"
+        />
         <button type="button" on:click={inc} aria-label="Augmenter">+</button>
       </div>
       <button class="primary" type="button" on:click={onAdvance} disabled={years < 1}
@@ -34,7 +51,7 @@
   {:else}
     <div class="controls">
       <label class="field-label" for="years">Avancer de</label>
-      <input id="years" type="number" min="1" bind:value={years} />
+      <input id="years" type="number" min="1" bind:value={years} style="width: {advW}" />
       <span class="unit">an(s)</span>
       <button class="primary" type="button" on:click={onAdvance} disabled={years < 1}>
         Avancer

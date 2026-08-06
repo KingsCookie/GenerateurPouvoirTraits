@@ -1,26 +1,32 @@
 <!-- SPECKIT START -->
-## Feature active : 013-refonte-ui-mobile
+## Feature active : 014-corrections-jauges-listes
 
-- **Plan** : `specs/013-refonte-ui-mobile/plan.md` (contexte technique, Constitution Check, structure)
-- **Spec** : `specs/013-refonte-ui-mobile/spec.md` (6 user stories, clarifications 2026-07-30)
-- **Recherche / décisions** : `specs/013-refonte-ui-mobile/research.md` (R1→R12 : seuil 760, feuilles, filtres, barres)
-- **Modèle de données** : `specs/013-refonte-ui-mobile/data-model.md` (états UI locaux non persistés ; aucune entité)
-- **Contrats** : `specs/013-refonte-ui-mobile/contracts/ui-contract.md` (contrat par écran, invariants INV-M1→14)
-- **Handoff** : `design_handoff_refonte_mobile_1a/README.md` (maquette hifi, direction **1a** validée ; 1b archivée)
-- **Périmètre** : refonte UI **mobile uniquement**, **cible v0.13.0**. Tout sous `@media (max-width: 760px)`
-  (seuil unique retenu en clarification, override du handoff qui disait 640 ; harmonise app.css 640, ListeView 640,
-  FicheView 720, StateIO 40rem → 760). Recrée les 5 écrans du handoff : chrome 2 rangées (icônes export/import +
-  toggle thème), Population en **lignes** (≥ 8 visibles, **pas de « ⋯ »**, tap = fiche), panneau **Filtres & tri**
-  plein écran (Pop.+Sandbox, `.filters` non rendu <760), Fiche **identité d'abord** (arbre = entrée, barres de
-  mesure P/M avec cas **hors-barème >10**), Paramètres en **cartes à lignes** (sous-page Apparence, éditeurs plein
-  écran), Sandbox en **lignes** (plus de table, lentille curseur, actions via « ⋯ »). Feuilles = patron
-  `SandboxPersonForm`. **CONTRAINTES ABSOLUES : desktop ≥760 inchangé (FR-002/SC-004) ; thèmes préservés, tokens
-  seule source, aucune valeur en dur (FR-003/FR-004/SC-005) ; `src/core` intact (FR-005).**
-- **Actions Constitution** : Principe IX → **aucune** maj doc (agencement responsive non prescrit). Principe IV →
-  **zéro modif `src/core`**. Principe VI → états UI locaux **non persistés**, aucun format touché. **Aucune
-  dépendance ajoutée** ; déterminisme préservé ; validation par **checklist manuelle** responsive (`npm run test`
-  + `npm run lint` restent verts).
-- Features livrées : 12 (`specs/012-reorganisation-parametres-ui/`) refonte page Paramètres : 2 onglets
+- **Plan** : `specs/014-corrections-jauges-listes/plan.md` (contexte technique, Constitution Check, structure)
+- **Spec** : `specs/014-corrections-jauges-listes/spec.md` (4 user stories P1→P4, clarification 2026-08-06)
+- **Recherche / décisions** : `specs/014-corrections-jauges-listes/research.md` (R1→R6 : composant Gauge, mapping tokens, animations bornées, dates, bulle extensible)
+- **Modèle de données** : `specs/014-corrections-jauges-listes/data-model.md` (état de présentation `GaugeState` dérivé, non persisté ; aucune entité)
+- **Contrats** : `specs/014-corrections-jauges-listes/contracts/ui-contract.md` (invariants INV-J1→19)
+- **Référence design** : `rsrc/jauges-etats-extremes.md` (règles d'état rompu/normal/surchargé, CSS repère à remapper)
+- **Périmètre** : lot de **corrections UI**, **cible v0.13.2** (seul le dernier chiffre change). UI uniquement
+  (`src/ui`). (1) **Composant `Gauge.svelte` partagé** + fonction pure `gaugeState()` dans `src/ui/lib` (testée
+  Vitest, bornes -1/0/10/11) : 3 états `rompu`(v<0)/`normal`(0≤v≤10)/`surchargé`(v>10), couleurs **remappées sur
+  tokens** (dégradé accent→accent-text, halo `--year-shadow`, danger). (2) **Fiche mobile ET desktop** utilise
+  `<Gauge>` (remplace barres mobiles + texte P/M desktop). (3) **Population mobile** : date de naissance
+  **complète** (`row.dateNaissance`, pas `yearOf`). (4) **Sandbox mobile** : ligne alignée sur Population + puces
+  P/M + bouton « ⋯ » ; **tap corps = aucune navigation** (clarif. option A). (5) **Bulle « Avancer »** extensible
+  (largeur = f(longueur), max borné pour garder la barre sur une ligne). **CONTRAINTES : `src/core` intact ;
+  tokens seule source, aucune valeur en dur ; desktop ≥760 inchangé SAUF ajout volontaire des jauges dans la
+  fiche (FR-009/SC-008) ; animations coupées par `prefers-reduced-motion` ; état `surchargé` ne déborde jamais du
+  rail.**
+- **Actions Constitution** : Principe IV → fonction d'état en `src/ui/lib` (présentation), **zéro modif `src/core`**.
+  Principe IX → §7.2 (P/M) **inchangé**, seul l'affichage change ; `rsrc/DescriptionProjet.md` non modifié.
+  Principe VI → aucun format/persistance touché. **Aucune dépendance ajoutée** ; déterminisme préservé ;
+  validation par **checklist manuelle** (`npm run test` + `npm run lint` verts, + test unitaire `gauge`).
+- Features livrées : 13 (`specs/013-refonte-ui-mobile/`) refonte UI mobile (direction 1a) sous `@media (max-width:760px)` :
+  chrome 2 rangées, Population/Sandbox en **lignes**, panneau Filtres plein écran, Fiche **identité d'abord** +
+  barres P/M hors-barème, Paramètres **cartes à lignes**, `MobileSheet` réutilisable, seuil unique 760 ; + fix
+  BUG-001 (débordement section Résilience en mobile) — v0.13.1 ;
+  12 (`specs/012-reorganisation-parametres-ui/`) refonte page Paramètres : 2 onglets
   Principaux/Avancés (store `paramsTab` persisté), éditeurs catalogues/espèces en modales, sélecteurs de type
   (défaut Action, alphabétique) et d'espèce (défaut humain), section éditeurs en Avancés (BUG-001) — v0.12.1 ;
   11 (`specs/011-corrections-bugs-ui/`) lot de 10 corrections (consanguinité lignée directe,
