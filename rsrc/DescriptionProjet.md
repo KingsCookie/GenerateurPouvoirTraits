@@ -63,8 +63,9 @@ Une **personne** est décrite par les champs suivants :
 | `sexe / genre` | **Enum paramétrable par espèce** (cf. §3.4). Le genre `"tout"` est présent par défaut chez toutes les espèces. |
 | `espèce` | **Enum** appartenant au catalogue des espèces (cf. §3.4). Défaut : `"humain"`. |
 | `date de naissance` | Date précise (jour, mois, année). Le temps « courant » est toujours le 1ᵉʳ janvier d'une année (cf. §6.5). |
-| `âge` | Entier = `année courante − année de naissance`. Tout le monde naît à **0 an**. |
-| `vivant / décédé` | Booléen. Si décédé : champ **obligatoire `raison du décès`** (texte libre). Voir §6.7. |
+| `âge` | Entier. Normalement = `année courante − année de naissance`. **Se fige à la mort** : un individu décédé arrête de vieillir (cf. §6.7). À la **résurrection** (§8.2), il reprend le vieillissement à partir de l'âge figé. Tout le monde naît à **0 an**. |
+| `vivant / décédé` | Booléen. Si décédé : champ **obligatoire `raison du décès`** (texte libre ; ex. `« mort naturelle »`, cf. §6.7). Un décédé peut être **ressuscité** (§8.2). |
+| `immortel` | Booléen (défaut **faux**). Si vrai, l'individu **ne peut pas mourir de mort naturelle** (§6.7) ; il peut toujours être tué manuellement. Éditable sur la fiche (§8.2). |
 | `parents` | Liste de références vers d'autres personnes. **`null`** pour le batch initial. |
 | `enfants` | Liste de références vers les enfants. Mise à jour automatiquement à chaque naissance. |
 | `conjoints` | Liste de conjoints, chacun marqué `actuel` ou `ex` (cf. §6.6). |
@@ -522,8 +523,9 @@ else:
 
 - Le temps « courant » est **toujours le 1ᵉʳ janvier** d'une année donnée.
 - Le bouton « **reproduire tout** » de la V1 **disparaît**, remplacé par un bouton « **avancer de X années** » (X **réglable**, minimum **1 an**). Avancer fait **défiler la date** (année par année) et applique, **pour chaque année**, le **tick annuel** (§6.6).
-- **Plus personne ne meurt naturellement** : il n'y a plus d'âge de mort, et l'**option « immortel » disparaît**. Seul l'utilisateur peut tuer un individu (cf. §6.7).
-- Tout le monde **naît à 0 an**. L'âge = `année courante − année de naissance`.
+- **Mort naturelle** : chaque espèce définit une **espérance de vie** (âge à partir duquel la mort devient possible) et un **% de mort naturelle par an** ; à chaque tick, tout individu **vivant, non immortel** et d'âge **≥ espérance de vie** subit ce tirage (cf. §6.6, §6.7, §9.4). L'utilisateur peut aussi **tuer** manuellement un individu.
+- Un individu **mort arrête de vieillir** : son âge se **fige** à l'âge de sa mort, et il **reste dans sa tranche de génération** (basée sur l'année de naissance, donc inchangée). À la **résurrection** (§8.2), il reprend le vieillissement à partir de cet âge.
+- Tout le monde **naît à 0 an**. Pour les **vivants**, l'âge = `année courante − année de naissance` ; pour les **morts**, il est figé (ci-dessus).
 - Les nouveau-nés d'une année reçoivent une **date de naissance** = un **jour précis tiré aléatoirement** dans l'année de naissance.
 
 ### 6.6. Tick annuel — reproduction, couples, divorces
@@ -539,6 +541,8 @@ Chaque année avancée applique, dans l'ordre :
   - Un groupe ainsi formé devient un **couple** : ses membres deviennent **conjoints actuels** les uns des autres et ne peuvent se reproduire **qu'au sein de ce groupe** tant qu'il n'y a pas divorce.
 - Les **couples déjà formés** ont chaque année un **% de chance de se reproduire** **issu de la même gaussienne de reproduction** (§9.4) que celle des candidats célibataires (évaluée selon l'âge des membres du couple) ; ce pourcentage reste **éditable couple par couple** par l'utilisateur.
 - Toute reproduction produit une **portée** (§6.6.2).
+
+**3. Mort naturelle.** Après l'avancée de la date (qui fait vieillir tous les **vivants**), pour chaque individu **vivant**, **non immortel** et dont l'âge **atteint ou dépasse** l'**espérance de vie de son espèce** (§9.4), on tire son **% de mort naturelle par an** : en cas de succès, il **meurt** avec `raison du décès = « mort naturelle »` et son **âge se fige** (§6.7). Les individus **déjà morts** ne vieillissent pas et ne sont pas retirés.
 
 > Le genre `"tout"` peut être groupé avec n'importe quel genre, mais **jamais en inter-espèces** et **sans briser** de couple existant (§3.4).
 
@@ -563,9 +567,11 @@ Tous les enfants d'une **même portée naissent le même jour** : le jour de nai
 
 ### 6.7. Mort
 
-- Plus de **mort naturelle**, plus d'âge de mort, plus d'option « immortel ».
-- L'utilisateur peut **tuer manuellement** un individu, **quel que soit son âge**, en renseignant **obligatoirement** une **cause de mort** (texte libre stocké dans `raison du décès`).
-- Un individu mort reste dans l'arbre généalogique, marqué « décédé », et ne peut plus se reproduire.
+- **Mort naturelle** : chaque espèce définit une **espérance de vie** (âge à partir duquel la mort devient possible) et un **% de mort naturelle par an** (§9.4). À chaque tick (§6.6, étape 3), tout individu **vivant**, **non immortel** et d'âge **≥ espérance de vie** subit ce tirage ; en cas de succès, il meurt avec `raison du décès = « mort naturelle »`.
+- **Immortalité** : un individu marqué **immortel** (champ §3.3, éditable en fiche §8.2 ; défaut **faux**) **ne peut pas** mourir de mort naturelle. Il peut toujours être **tué manuellement**.
+- **Mort manuelle** : l'utilisateur peut **tuer** un individu, **quel que soit son âge**, en renseignant **obligatoirement** une **cause de mort** (texte libre stocké dans `raison du décès`).
+- **Gel de l'âge** : un individu mort **arrête de vieillir** ; son âge se **fige** à l'âge de sa mort. Il **reste dans sa tranche de génération** (basée sur l'année de naissance). Il reste dans l'arbre généalogique, marqué « décédé », et **ne peut plus se reproduire**.
+- **Résurrection** : l'utilisateur peut **ressusciter** un individu décédé (§8.2). Il **redevient vivant** à l'âge qu'il avait à sa mort (l'âge **reprend ensuite son cours**), la `raison du décès` est **effacée**, et il est **de nouveau soumis** au tirage de mort naturelle dès le **prochain tick** — **sauf s'il est immortel**.
 
 ### 6.8. Création / édition manuelle d'individus
 
@@ -620,6 +626,10 @@ Page qui liste **tous les individus** avec recherche et filtres (par **générat
 - **date de naissance** et **âge**,
 - **pouvoir(s)**.
 
+**Filtres par année de naissance.** En plus du filtre par génération, deux filtres « **né après X** » et « **né avant Y** » (X, Y = **années**) permettent un filtrage plus précis. Dès qu'au moins l'un des deux est actif, le **filtre par génération est désactivé** (les deux systèmes sont **exclusifs**) ; les tranches de génération restent disponibles tant qu'aucun filtre d'année n'est posé.
+
+**Tris.** En plus des tris existants (nom, date de naissance, âge), deux tris **puissance** et **maîtrise**. Comme les autres tris, un clic **cycle** entre *tri par défaut → croissant → décroissant*. Pour un individu à **plusieurs pouvoirs**, on le classe selon son pouvoir **le plus extrême dans le sens du tri** : en **croissant**, selon son pouvoir de valeur **la plus basse** ; en **décroissant**, selon son pouvoir de valeur **la plus haute**. Le *tri par défaut* est identique à celui des autres tris (ordre par défaut habituel).
+
 Un clic sur un individu ouvre sa **fiche individu** (§8.2).
 
 ### 8.2. Fiche d'un individu
@@ -628,6 +638,7 @@ Page dédiée à un individu, qui contient :
 - ses **informations globales** (nom, date de naissance, âge, **génération** [tranche de 20 ans, cf. §6.2], espèce, genre, statut vivant/décédé, notes, parents, conjoints…) ;
 - son **ADN / ses traits**, affichés selon le mode d'affichage actif (cf. §8.5) ;
 - ses **pouvoirs**, avec **puissance** et **maîtrise** ;
+- des **actions de cycle de vie** : « **Tuer cet individu** » (cause de mort obligatoire) ; en dessous, « **Ressusciter** » (ramène un individu décédé à la vie, cf. §6.7) ; et une case à cocher « **Immortel** » (défaut **décoché** ; un immortel ne meurt pas de mort naturelle, cf. §6.7) ;
 - un **arbre généalogique** centré sur lui, avec une **profondeur N sélectionnable** (par défaut **2**) : N niveaux d'ancêtres au-dessus et N niveaux de descendants au-dessous, dans la mesure du possible.
 
 Chaque case de l'arbre contient **nom, date de naissance / âge et pouvoir(s)**. Un clic sur une case ouvre la fiche de l'individu cliqué (recentrage).
@@ -638,7 +649,7 @@ Page qui affiche **le même arbre** que la fiche (§8.2), centré sur le même i
 
 ### 8.4. Autres pages
 
-- **Écran d'avancement du temps** : bouton « **avancer de X années** » (X réglable, min. 1).
+- **Écran d'avancement du temps** : bouton « **avancer de X années** » (X réglable, min. 1). Pendant le calcul (après le clic sur « avancer »), un **indicateur de chargement** — une **flèche circulaire en rotation** — est affiché ; il **disparaît** dès que les calculs sont terminés et que la **nouvelle population** générée s'affiche.
 - **Écran sandbox** : voir §10.3. La **reproduction manuelle** (sélection de 1, 2 ou plusieurs individus) n'est disponible **qu'en sandbox**.
 - **Page des paramètres** : voir §9 ; affiche notamment la **seed** (+ bouton de régénération) et les **courbes gaussiennes** de reproduction par espèce.
 
@@ -709,8 +720,11 @@ Pour chaque espèce :
   - **pente** : slider d'écart-type avec effet direct sur la courbe affichée.
 - **% de divorce** par an.
 - **% de reproduction d'un couple** déjà formé par an : **issu de la même gaussienne de reproduction** ci-dessus (pas de paramètre séparé), mais **éditable couple par couple**.
+- **Espérance de vie** (âge, en années) : âge **à partir duquel** un individu de l'espèce peut mourir de mort naturelle (§6.7).
+- **% de mort naturelle par an** : probabilité, **testée à chaque année** au-delà de l'espérance de vie, qu'un individu **vivant et non immortel** meure de `« mort naturelle »` (§6.6 étape 3, §6.7).
+- Valeurs par défaut de l'espèce **humain** : **espérance de vie = 60 ans**, **% de mort naturelle = 10 % par an**.
 
-> Plus de durée de vie, plus d'âge de mort, plus d'âge à la naissance (toujours 0), plus d'immortalité : ces paramètres V1 **disparaissent**.
+> L'**âge à la naissance** reste **0**. En revanche, la **durée de vie** (espérance de vie + % de mort naturelle, par espèce) et l'**immortalité** (par individu, §3.3) sont **rétablies** dans cette version.
 
 ### 9.5. Catalogues
 
