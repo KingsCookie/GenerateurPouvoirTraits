@@ -145,7 +145,26 @@ export function derivePowersFromTraits(
     pouvoirs.push(...transformSublist(sublist, working, catalog, params, rng));
   }
 
-  return { pouvoirs, adn: { traits: [...working.values()] } };
+  return { pouvoirs: dedupeByLabel(pouvoirs), adn: { traits: [...working.values()] } };
+}
+
+/**
+ * Déduplication des pouvoirs de **libellé identique** d'une personne (§6.4.3, BUG-001).
+ * On conserve la **1ʳᵉ** occurrence de chaque libellé (ordre de production) et on écarte les
+ * suivantes. Étape purement fonctionnelle : exécutée **avant** l'attribution des puissances/maîtrises
+ * (§7.2, déléguée aux appelants), elle ne compare **aucune** statistique, ne consomme **aucun** tirage
+ * RNG et ne modifie pas l'ADN. Deux pouvoirs de libellés distincts (dont les deux d'une même feuille)
+ * sont toujours conservés.
+ */
+function dedupeByLabel(pouvoirs: Pouvoir[]): Pouvoir[] {
+  const seen = new Set<string>();
+  const kept: Pouvoir[] = [];
+  for (const pw of pouvoirs) {
+    if (seen.has(pw.label)) continue;
+    seen.add(pw.label);
+    kept.push(pw);
+  }
+  return kept;
 }
 
 // Regroupe les libellés d'un même type : « , … et » (états : « ou ») — purement pour l'affichage.

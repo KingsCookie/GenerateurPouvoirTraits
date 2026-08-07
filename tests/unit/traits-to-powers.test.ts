@@ -225,3 +225,64 @@ describe('§6.4.2 — jeton Kx partagé entre deux pouvoirs (US2, v0.15.0)', () 
     expect(res.pouvoirs).toHaveLength(2);
   });
 });
+
+// Catalogue avec DEUX actions au **même libellé** « courir » : la feuille a-seule « {a} {Ke} »
+// produit alors le même libellé pour chaque sous-liste ⇒ doublon volontaire pour tester la dédup.
+function catDupLabel(): Catalog {
+  return {
+    byType: {
+      Action: [
+        { id: 'a1', type: 'Action', label: 'courir', weight: 1 },
+        { id: 'a2', type: 'Action', label: 'courir', weight: 1 },
+      ],
+      Element: [{ id: 'e1', type: 'Element', label: 'feu', weight: 1 }],
+      PartieCorps: [{ id: 'p1', type: 'PartieCorps', label: 'bras', weight: 1 }],
+      Ajout: [{ id: 'aj1', type: 'Ajout', label: 'griffes', weight: 1 }],
+      Remplacement: [{ id: 'r1', type: 'Remplacement', label: 'lame', weight: 1 }],
+      Etat: [{ id: 'et1', type: 'Etat', label: 'gelé', weight: 1 }],
+    },
+  } as Catalog;
+}
+
+describe('§6.4.3 — déduplication des pouvoirs de libellé identique (BUG-001)', () => {
+  // a1 et a2 (mêmes libellé « courir ») ⇒ 2 sous-listes principales [[a1],[a2]] ; feuille a-seule
+  // « {a} {Ke} » ⇒ « courir feu » deux fois (un tirage {Ke} réussi par sous-liste).
+  it('T-DEDUP : deux pouvoirs de libellé identique ⇒ une seule copie (la 1ʳᵉ)', () => {
+    const res = derivePowersFromTraits(
+      active('a1', 'a2'),
+      catDupLabel(),
+      P,
+      fakeRng({ chances: [true, true] }), // {Ke} réussi pour chaque sous-liste
+    );
+    expect(res.pouvoirs).toHaveLength(1);
+    expect(res.pouvoirs[0].label).toBe('courir feu');
+    // La copie conservée est la PREMIÈRE produite (sous-liste de a1) — dédup avant §7.2.
+    expect(res.pouvoirs[0].id).toBe('pw:DERIVE:a1+e1#0');
+    // P/M pas encore attribuées à ce stade (déléguées aux appelants après dérivation).
+    expect(res.pouvoirs[0].puissance).toBe(0);
+    expect(res.pouvoirs[0].maitrise).toBe(0);
+  });
+
+  it('T-DEDUP-DISTINCT : deux libellés distincts d’une même branche ne sont PAS fusionnés', () => {
+    // Feuille a/e/et ⇒ « courir feu gelé » ; « rends feu gelé » (libellés distincts) ⇒ 2 pouvoirs conservés.
+    const res = derivePowersFromTraits(active('a1', 'e1', 'et1'), catDupLabel(), P, fakeRng());
+    expect(res.pouvoirs).toHaveLength(2);
+    expect(res.pouvoirs.map((p) => p.label)).toEqual(['courir feu gelé', 'rends feu gelé']);
+  });
+
+  it('T-DEDUP-DET : déterministe (même seed ⇒ résultat identique)', () => {
+    const a = derivePowersFromTraits(
+      active('a1', 'a2'),
+      catDupLabel(),
+      P,
+      fakeRng({ chances: [true, true] }),
+    );
+    const b = derivePowersFromTraits(
+      active('a1', 'a2'),
+      catDupLabel(),
+      P,
+      fakeRng({ chances: [true, true] }),
+    );
+    expect(a).toEqual(b);
+  });
+});

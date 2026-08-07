@@ -571,6 +571,16 @@ else:
 						pouvoir = null
 ----
 
+==== 6.4.3. Déduplication des pouvoirs identiques d'une personne (correctif, cible v0.15.x)
+
+Depuis la révision de l'arbre §6.4.2 (deux pouvoirs par branche, cible v0.15.0), une même personne peut se retrouver avec **plusieurs pouvoirs partageant exactement le même libellé** (deux branches, ou une branche à deux pouvoirs combinée aux autres sous-listes, peuvent aboutir au même libellé). On applique donc, **une fois par personne**, une étape de **déduplication**, effectuée **avant** l'attribution des puissances/maîtrises (§7.2) :
+
+* La **clé de doublon** est le **libellé** du pouvoir (clé d'affichage). Deux pouvoirs de libellé identique sont considérés comme **le même pouvoir**.
+* Pour chaque groupe de pouvoirs de libellé identique, on **ne conserve qu'une seule copie** : la **première** dans l'ordre de production (déterministe). Les autres copies sont **supprimées**. On **ne compare aucune statistique** — les puissances/maîtrises ne sont **pas encore attribuées** à ce stade.
+* Les **puissances/maîtrises** (§7.2) sont ensuite attribuées à la **liste déjà dédupliquée** : chaque libellé restant reçoit donc **un seul** couple puissance/maîtrise.
+* La déduplication porte sur la **liste des pouvoirs de la personne** (toutes sous-listes confondues) — jamais au sein d'une seule branche (les deux pouvoirs d'une même branche ont des libellés distincts, ils ne se dédupliquent pas entre eux).
+* **L'ADN n'est pas modifié** par cette étape (les traits générés `K…` déjà inscrits restent actifs). Le **déterminisme** est préservé et **aucune migration** n'est nécessaire (`FORMAT_VERSION` inchangé).
+
 === 6.5. Avancement du temps et vieillissement
 
 * Le temps « courant » est **toujours le 1ᵉʳ janvier** d'une année donnée.
