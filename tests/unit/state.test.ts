@@ -495,7 +495,10 @@ describe('Journal d’événements (Feature 7)', () => {
   it('migration v4→v5 (Feature 015) : immortel=faux, âge recomposé, espèce 60/10', () => {
     // Part d'un état v5 puis **retire** les champs Feature 015 pour simuler un fichier v4.
     const base = sampleState(0x515n);
-    const raw = JSON.parse(serializeFull({ ...base, currentYear: 50 })) as Record<string, unknown>;
+    // Âge attendu = 50 quel que soit le birthYear par défaut : currentYear = genèse + 50.
+    const raw = JSON.parse(
+      serializeFull({ ...base, currentYear: base.genesisYear + 50 }),
+    ) as Record<string, unknown>;
     raw.formatVersion = 4;
     for (const p of raw.population as Record<string, unknown>[]) {
       delete p.age;
@@ -511,7 +514,7 @@ describe('Journal d’événements (Feature 7)', () => {
     const st = res.value.state;
     for (const p of st.population) {
       expect(p.immortel).toBe(false);
-      // Genèse à l'année 0 (birthYear 0) ⇒ âge recomposé = currentYear − 0 = 50.
+      // Âge recomposé = currentYear − année de genèse = (genesisYear + 50) − genesisYear = 50.
       expect(p.age).toBe(50);
     }
     for (const e of st.especes) {

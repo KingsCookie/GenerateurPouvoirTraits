@@ -84,7 +84,7 @@ describe('editEspeces — setEspeceParam + validateEspece (INV-E3)', () => {
     const base = defaultEspeces();
     const next = setEspeceParam(base, base[0].id, 'reproPeakPct', 55);
     expect(next[0].reproPeakPct).toBe(55);
-    expect(base[0].reproPeakPct).toBe(40); // entrée non mutée
+    expect(base[0].reproPeakPct).toBe(defaultEspeces()[0].reproPeakPct); // entrée non mutée (défaut source unique)
   });
 
   it('validateEspece : début ≤ pic ≤ fin', () => {

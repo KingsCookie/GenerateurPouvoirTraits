@@ -1,0 +1,935 @@
+{
+  "catalog": {
+    "byType": {
+      "Action": [
+        {
+          "id": "Action:soigne-avec-0",
+          "label": "soigne avec",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:controle-1",
+          "label": "contrôle",
+          "type": "Action",
+          "weight": 6
+        },
+        {
+          "id": "Action:cree-2",
+          "label": "créé",
+          "type": "Action",
+          "weight": 9
+        },
+        {
+          "id": "Action:fait-exploser-3",
+          "label": "fait exploser",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:invulnerable-au-4",
+          "label": "Résistant au",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:communique-avec-5",
+          "label": "Communique avec",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:attire-repousse-6",
+          "label": "attire/repousse",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:traverse-7",
+          "label": "traverse",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:se-transforme-en-8",
+          "label": "se transforme en",
+          "type": "Action",
+          "weight": 9
+        },
+        {
+          "id": "Action:restaure-9",
+          "label": "Restaure",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:absorbe-se-nourrit-de-10",
+          "label": "Absorbe/se nourrit de",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:liquefie-11",
+          "label": "liquéfie",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:petrifie-12",
+          "label": "pétrifie",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:anime-13",
+          "label": "anime",
+          "type": "Action",
+          "weight": 6
+        },
+        {
+          "id": "Action:brule-14",
+          "label": "brule",
+          "type": "Action",
+          "weight": 6
+        },
+        {
+          "id": "Action:efface-15",
+          "label": "efface",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:rends-invisible-16",
+          "label": "rends invisible",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:alourdis-allege-17",
+          "label": "alourdis / allège",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:anticipe-18",
+          "label": "anticipe",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:plante-19",
+          "label": "plante",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:possede-20",
+          "label": "possède",
+          "type": "Action",
+          "weight": 6
+        },
+        {
+          "id": "Action:gelifie-21",
+          "label": "gélifie",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:electrifie-22",
+          "label": "électrifie",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:vaporise-23",
+          "label": "Vaporise",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:creer-des-lames-en-24",
+          "label": "Créer des lames en",
+          "type": "Action",
+          "weight": 6
+        },
+        {
+          "id": "Action:creer-des-boucliers-en-25",
+          "label": "Créer des boucliers en",
+          "type": "Action",
+          "weight": 6
+        },
+        {
+          "id": "Action:creer-des-masses-en-26",
+          "label": "Créer des masses en",
+          "type": "Action",
+          "weight": 6
+        },
+        {
+          "id": "Action:creer-des-armures-en-27",
+          "label": "Créer des armures en",
+          "type": "Action",
+          "weight": 6
+        },
+        {
+          "id": "Action:agrandi-retreci-28",
+          "label": "Agrandi/rétréci",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:teleporte-29",
+          "label": "Teleporte",
+          "type": "Action",
+          "weight": null
+        },
+        {
+          "id": "Action:ameliore-renforce-30",
+          "label": "Ameliore/renforce",
+          "type": "Action",
+          "weight": 6
+        }
+      ],
+      "Ajout": [
+        {
+          "id": "Ajout:fourrure-0",
+          "label": "Fourrure",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:plume-1",
+          "label": "Plume",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:tentacules-2",
+          "label": "Tentacules",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:pic-osseux-3",
+          "label": "Pic osseux",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:carapace-4",
+          "label": "Carapace",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:cristaux-5",
+          "label": "Cristaux",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:bras-6",
+          "label": "Bras",
+          "type": "Ajout",
+          "weight": 0.5
+        },
+        {
+          "id": "Ajout:cerveau-8",
+          "label": "Cerveau",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:yeux-10",
+          "label": "Yeux",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:machoire-11",
+          "label": "Mâchoire",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:paillettes-12",
+          "label": "Paillettes",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:tache-sombre-13",
+          "label": "Tache sombre",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:tache-de-couleur-14",
+          "label": "Tache de couleur",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:branchies-15",
+          "label": "Branchies",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:nageoires-16",
+          "label": "Nageoires",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:ecailles-17",
+          "label": "Écailles",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:muscle-supplementaire-18",
+          "label": "Muscle supplémentaire",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:halo-divin-19",
+          "label": "Halo divin",
+          "type": "Ajout",
+          "weight": 2
+        },
+        {
+          "id": "Ajout:ecorce-20",
+          "label": "Écorce",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:ronce-21",
+          "label": "Ronce",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:liane-22",
+          "label": "Liane",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:fleur-23",
+          "label": "Fleur",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:aiguillon-24",
+          "label": "Aiguillon",
+          "type": "Ajout",
+          "weight": null
+        },
+        {
+          "id": "Ajout:ombre-demoniaque-25",
+          "label": "Ombre démoniaque",
+          "type": "Ajout",
+          "weight": 2
+        }
+      ],
+      "Element": [
+        {
+          "id": "Element:sois-meme-0",
+          "label": "sois-même",
+          "type": "Element",
+          "weight": 4
+        },
+        {
+          "id": "Element:tissu-1",
+          "label": "tissu",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:mana-2",
+          "label": "mana",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:pouvoir-3",
+          "label": "pouvoir",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:chat-4",
+          "label": "chat",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:cuir-5",
+          "label": "cuir",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:esprit-6",
+          "label": "esprit",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:or-7",
+          "label": "or",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:metaux-8",
+          "label": "metaux",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:oiseaux-9",
+          "label": "oiseaux",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:eau-10",
+          "label": "eau",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:feu-11",
+          "label": "feu",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:caillou-12",
+          "label": "caillou",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:air-13",
+          "label": "air",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:papier-14",
+          "label": "papier",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:lumiere-15",
+          "label": "lumière",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:diamant-16",
+          "label": "diamant",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:verre-17",
+          "label": "verre",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:lezard-18",
+          "label": "Lézard",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:serpent-19",
+          "label": "Serpent",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:encre-20",
+          "label": "encre",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:fleur-21",
+          "label": "Plante",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:sang-22",
+          "label": "sang",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:nuage-23",
+          "label": "nuage",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:bois-24",
+          "label": "bois",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:electricite-26",
+          "label": "électricité",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:plume-27",
+          "label": "plume",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:ombre-28",
+          "label": "ombre",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:ceramique-30",
+          "label": "céramique",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:uranium-31",
+          "label": "uranium",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:cochon-32",
+          "label": "cochon",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:os-33",
+          "label": "os",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:chaire-34",
+          "label": "chaire",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:humain-35",
+          "label": "humain",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:plastique-36",
+          "label": "plastique",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:rongeur-37",
+          "label": "rongeur",
+          "type": "Element",
+          "weight": null
+        },
+        {
+          "id": "Element:insecte-38",
+          "label": "insecte",
+          "type": "Element",
+          "weight": null
+        }
+      ],
+      "Etat": [
+        {
+          "id": "Etat:lumineux-0",
+          "label": "Lumineux",
+          "type": "Etat",
+          "weight": null
+        },
+        {
+          "id": "Etat:visqueux-1",
+          "label": "Visqueux",
+          "type": "Etat",
+          "weight": null
+        },
+        {
+          "id": "Etat:rocailleux-2",
+          "label": "Rocailleux",
+          "type": "Etat",
+          "weight": null
+        },
+        {
+          "id": "Etat:invisible-3",
+          "label": "Invisible",
+          "type": "Etat",
+          "weight": null
+        },
+        {
+          "id": "Etat:gazeux-4",
+          "label": "Gazeux",
+          "type": "Etat",
+          "weight": null
+        },
+        {
+          "id": "Etat:froid-5",
+          "label": "Froid",
+          "type": "Etat",
+          "weight": null
+        },
+        {
+          "id": "Etat:chaud-6",
+          "label": "Chaud",
+          "type": "Etat",
+          "weight": null
+        },
+        {
+          "id": "Etat:mous-7",
+          "label": "Mous",
+          "type": "Etat",
+          "weight": null
+        },
+        {
+          "id": "Etat:vibrant-8",
+          "label": "Vibrant",
+          "type": "Etat",
+          "weight": null
+        },
+        {
+          "id": "Etat:musical-9",
+          "label": "Sonore",
+          "type": "Etat",
+          "weight": null
+        },
+        {
+          "id": "Etat:plus-grand-10",
+          "label": "Plus grand",
+          "type": "Etat",
+          "weight": null
+        },
+        {
+          "id": "Etat:plus-petit-11",
+          "label": "Plus petit",
+          "type": "Etat",
+          "weight": null
+        },
+        {
+          "id": "Etat:plasmique-12",
+          "label": "Plasmique",
+          "type": "Etat",
+          "weight": null
+        },
+        {
+          "id": "Etat:gelatineux-13",
+          "label": "gelatineux",
+          "type": "Etat",
+          "weight": null
+        },
+        {
+          "id": "Etat:detachable-14",
+          "label": "détachable",
+          "type": "Etat",
+          "weight": null
+        }
+      ],
+      "PartieCorps": [
+        {
+          "id": "PartieCorps:doigts-1",
+          "label": "Doigts",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:mains-2",
+          "label": "Mains",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:pieds-3",
+          "label": "Pieds",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:bras-4",
+          "label": "Bras",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:jambes-5",
+          "label": "Jambes",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:bas-du-dos-6",
+          "label": "Bas du dos",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:colonne-vertebrale-7",
+          "label": "Colonne vertébrale",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:omoplates-8",
+          "label": "Omoplates",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:cou-9",
+          "label": "Cou",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:epaule-10",
+          "label": "Épaule",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:yeux-11",
+          "label": "Yeux",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:nez-12",
+          "label": "Nez",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:langue-13",
+          "label": "Langue",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:bouche-14",
+          "label": "Bouche",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:front-15",
+          "label": "Front",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:corps-entier-16",
+          "label": "Corps entier",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:peau-17",
+          "label": "Peau",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:canine-18",
+          "label": "Canine",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:dent-19",
+          "label": "Dent",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:cheveux-20",
+          "label": "Cheveux",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:cote-gauche-21",
+          "label": "Coté gauche",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:cote-droit-22",
+          "label": "Coté droit",
+          "type": "PartieCorps",
+          "weight": null
+        },
+        {
+          "id": "PartieCorps:tete-23",
+          "label": "Tête",
+          "type": "PartieCorps",
+          "weight": null
+        }
+      ],
+      "Remplacement": [
+        {
+          "id": "Remplacement:pinces-de-crabe-0",
+          "label": "Partie de crabe",
+          "type": "Remplacement",
+          "weight": null
+        },
+        {
+          "id": "Remplacement:mandibule-1",
+          "label": "Partie insectoïde",
+          "type": "Remplacement",
+          "weight": null
+        },
+        {
+          "id": "Remplacement:tentacules-2",
+          "label": "Tentacules",
+          "type": "Remplacement",
+          "weight": null
+        },
+        {
+          "id": "Remplacement:main-3",
+          "label": "Main",
+          "type": "Remplacement",
+          "weight": 0.5
+        },
+        {
+          "id": "Remplacement:structure-osseuse-4",
+          "label": "Structure osseuse",
+          "type": "Remplacement",
+          "weight": null
+        },
+        {
+          "id": "Remplacement:halo-divin-5",
+          "label": "Halo divin",
+          "type": "Remplacement",
+          "weight": 2
+        },
+        {
+          "id": "Remplacement:moteur-6",
+          "label": "Partie cybernétique",
+          "type": "Remplacement",
+          "weight": null
+        },
+        {
+          "id": "Remplacement:ronce-7",
+          "label": "Ronce",
+          "type": "Remplacement",
+          "weight": null
+        },
+        {
+          "id": "Remplacement:fleur-8",
+          "label": "Fleur",
+          "type": "Remplacement",
+          "weight": null
+        },
+        {
+          "id": "Remplacement:miroir-9",
+          "label": "Matière réfléchissante",
+          "type": "Remplacement",
+          "weight": null
+        },
+        {
+          "id": "Remplacement:ombre-demoniaque-11",
+          "label": "Ombre démoniaque",
+          "type": "Remplacement",
+          "weight": 2
+        }
+      ]
+    }
+  },
+  "especes": [
+    {
+      "divorcePct": 2,
+      "esperanceVie": 60,
+      "genres": [
+        {
+          "id": "tout",
+          "label": "Tout"
+        },
+        {
+          "id": "feminin",
+          "label": "Féminin"
+        },
+        {
+          "id": "masculin",
+          "label": "Masculin"
+        }
+      ],
+      "groupSize": 2,
+      "id": "humain",
+      "label": "Humain",
+      "litterExtraPct": 5,
+      "litterMax": 4,
+      "litterMin": 1,
+      "mortNaturellePct": 9,
+      "reproEndAge": 50,
+      "reproPeakAge": 30,
+      "reproPeakPct": 20,
+      "reproSlope": 6,
+      "reproStartAge": 18
+    }
+  ],
+  "parameters": {
+    "batchSize": 100,
+    "birthYear": 1880,
+    "bonusPoints": 5,
+    "consanguinityAllowed": false,
+    "disappearThreshold": 20,
+    "duplicationD": 1.5,
+    "generationK": 10,
+    "genomeMalusEnabled": true,
+    "initialResilience": 50,
+    "malusPoints": 5,
+    "noPowerRatePct": 10,
+    "powerChancePct": 1,
+    "resilienceMax": 95,
+    "resilienceOverrides": {
+      "byTrait": {},
+      "byType": {}
+    },
+    "seed": "4392551652664730716",
+    "statB": 25,
+    "statC": 25,
+    "strongMutationRatePct": 10,
+    "templateWeights": {
+      "AE": 4,
+      "PA": 1,
+      "PE": 1,
+      "PR": 1
+    },
+    "traitTypeWeights": {
+      "Action": 4,
+      "Ajout": 1,
+      "Element": 2,
+      "Etat": 1,
+      "PartieCorps": 1,
+      "Remplacement": 1
+    },
+    "weakMutationGainPct": 10,
+    "weakMutationLossPct": 10
+  }
+}
