@@ -56,6 +56,8 @@
     --g-h: 10px;
     --g-band-speed: 0.44s;
     --g-wave-speed: 3.4s;
+    /* Fond de jauge contrasté (theme-aware) — partagé par le rail plein ET les tronçons cassés. */
+    --g-track: color-mix(in srgb, var(--fg) 38%, var(--bg));
     display: flex;
     align-items: center;
     gap: 8px;
@@ -80,7 +82,7 @@
   /* ===== normal : rendu conservé (barre fine accent) ===== */
   .track {
     border-radius: var(--chip-radius);
-    background: var(--row-border);
+    background: var(--g-track);
     overflow: hidden;
   }
   .fill {
@@ -111,10 +113,11 @@
     bottom: 0;
     left: -40px;
     right: -40px;
+    /* Bandes de surcharge : plus fines (5px) et plus blanches (65 %). Période 30px = translate 30px. */
     background: repeating-linear-gradient(
       115deg,
-      color-mix(in srgb, #fff 30%, transparent) 0 10px,
-      transparent 10px 30px
+      color-mix(in srgb, #fff 65%, transparent) 0 5px,
+      transparent 5px 30px
     );
     animation: gauge-bands var(--g-band-speed) linear infinite;
   }
@@ -165,7 +168,8 @@
   .piece {
     position: absolute;
     height: var(--g-h);
-    background: var(--bg);
+    /* Même fond contrasté que le rail plein (cohérence de contraste demandée). */
+    background: var(--g-track);
     border: 1px solid var(--border);
   }
   .piece--left {
