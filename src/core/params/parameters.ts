@@ -1,6 +1,6 @@
 import type { TraitType } from '../model/traitType.js';
-import { TRAIT_TYPES } from '../model/traitType.js';
 import type { PowerTemplate } from '../model/pouvoir.js';
+import { DEFAULT_PARAMETERS } from '../default/defaultConfig.js';
 
 /**
  * Surcharge de résilience (Feature 5, §9.2) — par champ et indépendante. Un champ absent
@@ -53,46 +53,14 @@ export interface Parameters {
   resilienceOverrides: ResilienceOverrides;
 }
 
-function defaultTraitTypeWeights(): Record<TraitType, number> {
-  const w = {} as Record<TraitType, number>;
-  for (const t of TRAIT_TYPES) w[t] = 1;
-  return w;
-}
-
 /**
- * Valeurs par défaut. La `seed` vaut "0" ici (cœur pur, sans entropie) ; l'UI tire une
- * vraie seed via `createSeed()` au démarrage (seul point d'entropie, Principe I).
+ * Valeurs par défaut. Elles proviennent **intégralement** de la source unique
+ * `src/core/default/` (Feature 017, INV-DM1/INV-DM3), issue du fichier de config de référence.
+ * La `seed` y est **forcée à "0"** (cœur pur, sans entropie) ; l'UI tire une vraie seed via
+ * `createSeed()` au démarrage (seul point d'entropie, Principe I / FR-005).
  */
 export function defaultParameters(): Parameters {
-  return {
-    seed: '0',
-    batchSize: 100,
-    birthYear: 0,
-    powerChancePct: 0,
-    initialResilience: 50,
-    traitTypeWeights: defaultTraitTypeWeights(),
-    // AE majoritaire (i ∈ {0,1,2} dans le gabarit §6.1) → poids 3, les autres 1.
-    templateWeights: { AE: 3, PE: 1, PA: 1, PR: 1 },
-
-    // Moteur génétique : défauts prévisibles (taux à 0 ⇒ naissance normale pure ; cf. plan.md).
-    duplicationD: 0.25,
-    generationK: 10,
-    resilienceMax: 95,
-    bonusPoints: 5,
-    malusPoints: 5,
-    disappearThreshold: 2,
-    strongMutationRatePct: 20,
-    noPowerRatePct: 10,
-    weakMutationGainPct: 20,
-    weakMutationLossPct: 20,
-    genomeMalusEnabled: false,
-    statB: 10,
-    statC: 30, // ⇒ A = 100 − 2·10 − 30 = 50
-
-    consanguinityAllowed: false, // consanguinité interdite par défaut (§6.6.1 / §9.5)
-
-    resilienceOverrides: { byType: {}, byTrait: {} }, // aucune surcharge par défaut (Feature 5)
-  };
+  return DEFAULT_PARAMETERS();
 }
 
 /** Probabilité A (%) du tirage P/M (§7.2), dérivée : A = 100 − 2·B − C (clampée ≥ 0). */

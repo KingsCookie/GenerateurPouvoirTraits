@@ -1,26 +1,30 @@
 <!-- SPECKIT START -->
-## Feature active : 016-revision-algo-pouvoir
+## Feature active : 017-config-defaults
 
-- **Plan** : `specs/016-revision-algo-pouvoir/plan.md` (contexte technique, Constitution Check 10/10 PASS, structure)
-- **Spec** : `specs/016-revision-algo-pouvoir/spec.md` (3 user stories P1→P3, 11 FR, 1 clarification 2026-08-06)
-- **Recherche / décisions** : `specs/016-revision-algo-pouvoir/research.md` (R1→R7 : retour `string[]` de l'arbre, `transformSublist`→`Pouvoir[]`, ordre RNG des `K` partagés, id `#index`, traitIds par pouvoir, point de passage unique, pas de migration)
-- **Modèle de données** : `specs/016-revision-algo-pouvoir/data-model.md` (Pouvoir : cardinalité 0/1/2 par sous-liste, id `#index`, traitIds ; jeton `K` partagé ; invariants INV-2P/K1/IDP/DET/NR)
-- **Contrats** : `specs/016-revision-algo-pouvoir/contracts/core-contract.md` (invariants INV-C1→C13)
-- **Quickstart** : `specs/016-revision-algo-pouvoir/quickstart.md` (tests seed-fixe + checklist manuelle mobile+desktop)
-- **Périmètre** : révision algo **§6.4.2**, **cible v0.15.0**, **cœur seul** (UI inchangée, clé d'affichage = libellé).
-  (1) **Deux pouvoirs par feuille** : 23 feuilles marquées `"X" ; "Y"` produisent 2 pouvoirs distincts (P/M
-  **indépendantes** §7.2). (2) **Jeton `Kx` partagé** : un seul tirage `K` réutilisé dans les 2 pouvoirs ; **échec**
-  ⇒ seuls les pouvoirs référençant ce jeton tombent (un pouvoir sans jeton `K` échoué est produit). (3) **24 feuilles
-  révisées** dont `a/e/p/r/aj/et` (1ᵉʳ pouvoir `{aj} {et}`), `a/et` (`rends {Ke} {et}`), `aj/et/r` (mono, sans `{Ka}`).
-  (4) **id pouvoir** suffixé `#index` (unique **par personne** ; collisions inter-personnes tolérées).
-  **CONTRAINTES : `powerLabelTree.ts` renvoie 1–2 gabarits ; `transformSublist`→`Pouvoir[]` (0–2) ; ordre RNG fixe
-  (K distincts par 1ʳᵉ apparition, puis P/M par index côté appelants) ; cœur `src/core` pur ; `FORMAT_VERSION`
-  **inchangé** (pas de migration) ; déterminisme préservé (sorties seed-fixe **changent** vs v0.14.x, attendu).**
-- **Actions Constitution** : Principe IX → `rsrc/DescriptionProjet.md`/`.adoc`/`.pdf` §6.4.2 **déjà mis à jour et
-  validés avec autorisation de l'auteur**. Principe IV → logique en `src/core/powers` (pur). Principe V → tests
-  Vitest seed-fixe (arbre 24 feuilles + non-régression, `Kx` partagé, échec K, id, déterminisme). **Aucune
-  dépendance ajoutée ; aucune migration.**
-- Features livrées : 15 (`specs/015-esperance-vie-tris-filtres/`) espérance de vie & mort naturelle par espèce
+- **Plan** : `specs/017-config-defaults/plan.md` (contexte technique, Constitution Check 9/10 PASS + 1 action Principe IX, structure)
+- **Spec** : `specs/017-config-defaults/spec.md` (3 user stories P1→P3, 10 FR, 0 clarification — ambiguïtés levées par la directive auteur)
+- **Recherche / décisions** : `specs/017-config-defaults/research.md` (R1 source unique `src/core/default/` JSON+TS ; R2 catalogue **verbatim** — ids non régénérables ; R3 seed forcée `'0'` ; R4 clones `structuredClone` ; R5 **tout** le fichier, aucun tri ; R6 réalignement tests ; R7 doc §IX + bump v1 après validation)
+- **Modèle de données** : `specs/017-config-defaults/data-model.md` (source `defaultConfig.json`+`.ts` ; `DEFAULT_CATALOG/ESPECES/PARAMETERS` clonés ; invariants INV-DM1→7)
+- **Contrats** : `specs/017-config-defaults/contracts/core-contract.md` (invariants INV-C1→C9 ; API publique inchangée)
+- **Quickstart** : `specs/017-config-defaults/quickstart.md` (test `default-config.test.ts` deep-equal config + réalignements gaussian/especes/catalog/state + checklist manuelle)
+- **Périmètre** : **dernière feature v0**, **cible v1.0.0** (bump **après** validation auteur), **cœur seul** (API `src/core/index.ts` inchangée).
+  Faire de **tout** le fichier `rsrc/PowerGenerator_config_20260807-153421.json` (blocs `catalog`/`especes`/`parameters`,
+  y compris valeurs identiques aux défauts actuels) les **valeurs par défaut**, **seed exclue** (forcée `'0'` ; UI garde
+  `createSeed()`), servies depuis une **source unique** `src/core/default/`. Catalogue embarqué **verbatim** (ids
+  non contigus car traits supprimés par l'utilisateur). `defaultCatalog`/`defaultEspece(s)`/`defaultParameters`
+  deviennent de minces adaptateurs ; anciens `RAW`/littéraux **supprimés**.
+  **CONTRAINTES : cœur `src/core` pur (aucune I/O, aucune dépendance runtime à `rsrc/`) ; aucune dépendance ajoutée ;
+  `FORMAT_VERSION` inchangé (pas de migration) ; import de fichiers existants inchangé ; déterminisme préservé
+  (sorties seed-fixe **changent** vs v0.15.x, attendu).**
+- **Actions Constitution** : Principe IX → `rsrc/DescriptionProjet.md`/`.adoc`/`.pdf` (valeurs par défaut : repro/mortalité
+  humain, gaussienne §9.4, défauts moteur, catalogue) à mettre à jour **avec autorisation auteur** **avant** le code, puis
+  recompilation `.pdf`. Principe IV → source pure en `src/core/default`. Principe V → `default-config.test.ts` (deep-equal)
+  + tests réalignés. **Aucune dépendance ; aucune migration.**
+- Features livrées : 16 (`specs/016-revision-algo-pouvoir/`) révision algo §6.4.2 : 2 pouvoirs par feuille (P/M
+  indépendantes), jeton `Kx` partagé (échec ⇒ seuls les pouvoirs le référençant tombent), 24 feuilles révisées,
+  id pouvoir suffixé `#index` ; puis dédup §6.4.3 BUG-001 (libellé identique) + BUG-002 (position + traits affichés) ;
+  fix graphique jauge P/M (contraste + bandes surcharge/barres cassées) — v0.15.0→v0.15.3 ;
+  15 (`specs/015-esperance-vie-tris-filtres/`) espérance de vie & mort naturelle par espèce
   (`esperanceVie`/`mortNaturellePct`, défauts humain 60/10), âge suivi (`Personne.age`, gelé à la mort/repris à la
   résurrection), `resurrect`/`setImmortal` + boutons Ressusciter/Immortel, tris puissance/maîtrise, filtres né
   après/avant, spinner « avancer », `FORMAT_VERSION` 4→5 — v0.14.1 ;

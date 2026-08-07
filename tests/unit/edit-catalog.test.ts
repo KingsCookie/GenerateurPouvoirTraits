@@ -102,9 +102,12 @@ describe('editCatalog — poids (surcharge ?? type)', () => {
 });
 
 describe('editCatalog — catalogue par défaut', () => {
-  it('les traits par défaut n’ont aucune surcharge (héritent du poids de leur type)', () => {
+  it('les traits par défaut portent les surcharges de poids du fichier de config (source unique)', () => {
     const def = defaultCatalog();
-    const allNull = Object.values(def.byType).every((list) => list.every((t) => t.weight === null));
-    expect(allNull).toBe(true);
+    const all = Object.values(def.byType).flat();
+    // Le catalogue par défaut vient désormais du fichier de config : certains traits portent une
+    // surcharge de poids explicite, d'autres héritent du poids de leur type (weight === null).
+    expect(all.some((t) => t.weight !== null)).toBe(true);
+    expect(all.some((t) => t.weight === null)).toBe(true);
   });
 });

@@ -1,174 +1,10 @@
-import type { Catalog, Trait } from '../model/trait.js';
-import type { TraitType } from '../model/traitType.js';
-import { TRAIT_TYPES } from '../model/traitType.js';
+import type { Catalog } from '../model/trait.js';
 import type { Espece } from '../model/espece.js';
-import { GENRE_TOUT } from '../model/espece.js';
+import { DEFAULT_CATALOG, DEFAULT_ESPECES } from '../default/defaultConfig.js';
 
-// Listes de traits par défaut, embarquées comme données du cœur (D9). Source de référence :
-// rsrc/ExempleTraits/*.txt (copie intégrée au bundle ; aucune I/O réseau au runtime).
-const RAW: Record<TraitType, string[]> = {
-  Remplacement: [
-    'Pinces de crabe',
-    'Mandibule',
-    'Tentacules',
-    'Main',
-    'Structure osseuse',
-    'Halo divin',
-    'Moteur',
-    'Ronce',
-    'Fleur',
-    'Miroir',
-    'Aiguillon',
-    'Ombre démoniaque',
-  ],
-  PartieCorps: [
-    'Indexs',
-    'Doigts',
-    'Mains',
-    'Pieds',
-    'Bras',
-    'Jambes',
-    'Bas du dos',
-    'Colonne vertébrale',
-    'Omoplates',
-    'Cou',
-    'Épaule',
-    'Yeux',
-    'Nez',
-    'Langue',
-    'Bouche',
-    'Front',
-    'Corps entier',
-    'Peau',
-    'Canine',
-    'Dent',
-    'Cheveux',
-    'Coté gauche',
-    'Coté droit',
-  ],
-  Etat: [
-    'Lumineux',
-    'Visqueux',
-    'Rocailleux',
-    'Invisible',
-    'Gazeux',
-    'Froid',
-    'Chaud',
-    'Mous',
-    'Vibrant',
-    'Musical',
-    'Plus grand',
-    'Plus petit',
-    'Plasmique',
-    'gelatineux',
-    'détachable',
-  ],
-  Element: [
-    'sois-même',
-    'tissu',
-    'mana',
-    'pouvoir',
-    'chat',
-    'cuir',
-    'esprit',
-    'or',
-    'metaux',
-    'oiseaux',
-    'eau',
-    'feu',
-    'caillou',
-    'air',
-    'papier',
-    'lumière',
-    'diamant',
-    'verre',
-    'Lézard',
-    'Serpent',
-    'encre',
-    'fleur',
-    'sang',
-    'nuage',
-    'bois',
-    'lait',
-    'électricité',
-    'plume',
-    'ombre',
-    'livres',
-    'céramique',
-    'uranium',
-    'cochon',
-    'os',
-    'chaire',
-    'humain',
-    'plastique',
-    'rongeur',
-    'insecte',
-  ],
-  Ajout: [
-    'Fourrure',
-    'Plume',
-    'Tentacules',
-    'Pic osseux',
-    'Carapace',
-    'Cristaux',
-    'Bras',
-    'Jambes',
-    'Cerveau',
-    'Oeil',
-    'Yeux',
-    'Mâchoire',
-    'Paillettes',
-    'Tache sombre',
-    'Tache de couleur',
-    'Branchies',
-    'Nageoires',
-    'Écailles',
-    'Muscle supplémentaire',
-    'Halo divin',
-    'Écorce',
-    'Ronce',
-    'Liane',
-    'Fleur',
-    'Aiguillon',
-    'Ombre démoniaque',
-  ],
-  Action: [
-    'soigne avec',
-    'contrôle',
-    'créé',
-    'fait exploser',
-    'Invulnérable au',
-    'Communique avec',
-    'attire/repousse',
-    'traverse',
-    'se transforme en',
-    'Restaure',
-    'Absorbe/se nourrit de',
-    'liquéfie',
-    'pétrifie',
-    'anime',
-    'brule',
-    'efface',
-    'rends invisible',
-    'alourdis / allège',
-    'anticipe',
-    'plante',
-    'possède',
-    'gélifie',
-    'électrifie',
-    'Vaporise',
-    'Créer des lames en',
-    'Créer des boucliers en',
-    'Créer des masses en',
-    'Créer des armures en',
-    'Agrandi/rétréci',
-    'Teleporte',
-    'Ameliore/renforce',
-  ],
-};
-
-// Slug stable et déterministe pour l'id de trait (sans dépendre de la casse/accents
-// pour l'unicité fonctionnelle, mais en conservant un identifiant lisible).
+// Slug stable et déterministe pour l'id de trait (`type:slug-i`). Conservé ici car utilisé par
+// l'édition de catalogue (`editCatalog.addTrait`) et l'UI. Sans dépendre de la casse/accents
+// pour l'unicité fonctionnelle, tout en gardant un identifiant lisible.
 export function slug(label: string): string {
   return label
     .normalize('NFD')
@@ -179,52 +15,22 @@ export function slug(label: string): string {
 }
 
 /**
- * Catalogue par défaut : 6 types, ids stables `type:slug-i`. Les traits ne portent **aucune
- * surcharge de poids** (`weight = null`) ⇒ ils héritent du poids de leur type
- * (`traitTypeWeights`, défaut 1 — Feature 5). Régler le poids d'un type biaise donc bien tous
- * ses traits non surchargés.
+ * Catalogue par défaut : provient **intégralement** de la source unique `src/core/default/`
+ * (Feature 017, INV-DM1). Les ids/libellés/poids sont ceux du fichier de config de référence
+ * (embarqués **verbatim** — non régénérables par index car des traits y ont été supprimés).
+ * Un trait sans surcharge de poids (`weight = null`) hérite du poids de son type
+ * (`traitTypeWeights`, Feature 5).
  */
 export function defaultCatalog(): Catalog {
-  const byType = {} as Record<TraitType, Trait[]>;
-  for (const type of TRAIT_TYPES) {
-    byType[type] = RAW[type].map((label, i) => ({
-      id: `${type}:${slug(label)}-${i}`,
-      type,
-      label,
-      weight: null,
-    }));
-  }
-  return { byType };
+  return DEFAULT_CATALOG();
 }
 
-/** Espèce par défaut « humain » avec le genre spécial « tout » (FR-007, FR-011). */
+/** Espèce par défaut « humain » (premier élément de la source unique). */
 export function defaultEspece(): Espece {
-  return {
-    id: 'humain',
-    label: 'Humain',
-    genres: [
-      { id: GENRE_TOUT, label: 'Tout' },
-      { id: 'feminin', label: 'Féminin' },
-      { id: 'masculin', label: 'Masculin' },
-    ],
-    // Défauts humain (clarification + plan §Décisions de paramètres par défaut).
-    reproStartAge: 18,
-    reproPeakAge: 25,
-    reproEndAge: 50,
-    reproPeakPct: 40,
-    reproSlope: 8,
-    groupSize: 2,
-    litterMin: 1,
-    litterMax: 4,
-    litterExtraPct: 15,
-    divorcePct: 0,
-    // Mort naturelle (Feature 015, §9.4) : défauts humain.
-    esperanceVie: 60,
-    mortNaturellePct: 10,
-  };
+  return DEFAULT_ESPECES()[0];
 }
 
-/** Toutes les espèces par défaut (Feature 1 : uniquement « humain »). */
+/** Toutes les espèces par défaut (source unique — actuellement « humain » seul). */
 export function defaultEspeces(): Espece[] {
-  return [defaultEspece()];
+  return DEFAULT_ESPECES();
 }

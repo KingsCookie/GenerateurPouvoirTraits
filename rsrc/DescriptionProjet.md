@@ -40,7 +40,7 @@ Un **trait** est l'unité élémentaire qui compose un pouvoir. Il existe **6 ty
 | Ajouts | Fourrure, Plume, Tentacules, Carapace, Cristaux… |
 | Actions | contrôle, créé, brule, téléporte, anime, soigne avec… |
 
-- Les **listes par défaut** sont celles du dossier `rsrc/ExempleTraits/`.
+- Les **listes par défaut** sont le **jeu de traits de référence fourni avec l'application**.
 - Un utilisateur peut **ajouter ou retirer** des traits dans chaque catégorie à l'exécution.
 - Un même mot peut apparaître dans plusieurs catégories (ex. *Fleur* dans Remplacements ET dans Ajouts) — chaque occurrence est un trait distinct, indépendant.
 
@@ -114,7 +114,7 @@ Chaque trait porté par un individu possède une **résilience** : un pourcentag
 - Si un trait est tiré **actif** chez l'enfant → un **bonus** est appliqué à sa résilience chez l'enfant.
 - Si un trait est tiré **inactif** chez l'enfant → un **malus** est appliqué à sa résilience chez l'enfant.
 - Tous les traits ont une **résilience maximale** au-dessus de laquelle le bonus ne s'applique plus.
-- Si la résilience tombe sous un **seuil de disparition** (par défaut 2 %), le trait disparaît de l'ADN de l'enfant. **C'est la seule manière pour qu'un trait disparaisse définitivement de la lignée.**
+- Si la résilience tombe sous un **seuil de disparition** (par défaut 20 %), le trait disparaît de l'ADN de l'enfant. **C'est la seule manière pour qu'un trait disparaisse définitivement de la lignée.**
 
 ### 4.2. Combinaison entre parents pour un même trait
 
@@ -188,7 +188,7 @@ Gabarit de génération du pouvoir de mutation forte (c'est le **seul** endroit 
 - Ses descendants peuvent quand même réactiver les traits.
 
 **Option globale : malus sur le génome en cas de mutation forte / enfant sans pouvoir**
-- Activable / désactivable. **Par défaut désactivée** : les traits inactifs sont hérités sans pénalité de résilience.
+- Activable / désactivable. **Par défaut activée** : dans ces deux cas spéciaux, les traits inactifs subissent le malus de résilience. (Désactivée, ils seraient hérités sans pénalité.)
 - Dans ces deux cas spéciaux, si plusieurs parents partagent un trait, on conserve simplement la **résilience la plus élevée**.
 
 ### 6.2. Suppression des générations
@@ -231,7 +231,7 @@ On crée **autant de sous-listes que de traits principaux**, chacune initialisé
    - S'il y a **plus de principaux que de secondaires**, certains principaux restent sans secondaire.
    - S'il y a **plus de secondaires que de principaux**, on **recommence le parcours des principaux** depuis le début, dans le même ordre.
 
-**Duplication** : au moment où l'on assigne un trait secondaire, il y a `min(100, résilience du trait secondaire × D) %` de chance que ce trait **se duplique**, c'est-à-dire qu'une **copie** soit aussi placée dans **une autre** sous-liste. (`D` = constante de duplication, **multiplicateur ≥ 0** de valeur par défaut **0,25**, distincte de la constante de génération `K` du §6.4.2 ; `D = 0` ⇒ aucune duplication, et la probabilité est **plafonnée à 100 %**.)
+**Duplication** : au moment où l'on assigne un trait secondaire, il y a `min(100, résilience du trait secondaire × D) %` de chance que ce trait **se duplique**, c'est-à-dire qu'une **copie** soit aussi placée dans **une autre** sous-liste. (`D` = constante de duplication, **multiplicateur ≥ 0** de valeur par défaut **1,5**, distincte de la constante de génération `K` du §6.4.2 ; `D = 0` ⇒ aucune duplication, et la probabilité est **plafonnée à 100 %**.)
 - Un trait dupliqué ne peut **pas apparaître deux fois dans une même sous-liste** ; il peut donc être dupliqué au maximum autant de fois qu'il y a de sous-listes.
 - La duplication **ne modifie pas l'ADN** : elle n'existe que pour la construction des pouvoirs.
 
@@ -716,7 +716,7 @@ Trois modes au choix :
 
 - Résilience initiale : globale, par type de trait, par trait.
 - Résilience maximale : globale, par type de trait, par trait.
-- **Seuil de disparition** (par défaut 2 %) : global, par type de trait, par trait.
+- **Seuil de disparition** (par défaut 20 %) : global, par type de trait, par trait.
 - Pour ces trois paramètres (résilience initiale, maximale, seuil de disparition) — comme pour les
   **poids** (§9.1) — la **valeur d'un type** est le **défaut** de ses traits, **surchargeable par
   trait** (priorité **trait → type → global**) ; un bouton **« Propager »** (par type) réapplique la
@@ -727,14 +727,14 @@ Trois modes au choix :
 - Taux de **naissance sans pouvoir** par naissance.
 - Taux de **mutation faible — gain** d'un trait par naissance.
 - Taux de **mutation faible — perte** d'un trait par naissance.
-- Option **activer/désactiver le malus** sur le génome en cas de mutation forte / enfant sans pouvoir (désactivé par défaut).
+- Option **activer/désactiver le malus** sur le génome en cas de mutation forte / enfant sans pouvoir (activé par défaut).
 - Probabilités **B** et **C** de puissance/maîtrise (§7) ; **A = 100 − 2·B − C** affichée.
 
 ### 9.3. Paramètres de population
 
-- Nombre d'individus du **batch initial**.
-- **Année de naissance** du batch initial (par défaut **an 0** ; modifiable **avant** la naissance du batch).
-- **% de chance qu'un individu du batch initial possède un pouvoir** (par défaut **0 %**).
+- Nombre d'individus du **batch initial** (par défaut **300**).
+- **Année de naissance** du batch initial (par défaut **an 1880** ; modifiable **avant** la naissance du batch).
+- **% de chance qu'un individu du batch initial possède un pouvoir** (par défaut **1 %**).
 - **X** : pas d'avancement du temps (« avancer de X années », min. 1).
 
 ### 9.4. Paramètres d'espèce
@@ -752,13 +752,13 @@ Pour chaque espèce :
 - **% de reproduction d'un couple** déjà formé par an : **issu de la même gaussienne de reproduction** ci-dessus (pas de paramètre séparé), mais **éditable couple par couple**.
 - **Espérance de vie** (âge, en années) : âge **à partir duquel** un individu de l'espèce peut mourir de mort naturelle (§6.7).
 - **% de mort naturelle par an** : probabilité, **testée à chaque année** au-delà de l'espérance de vie, qu'un individu **vivant et non immortel** meure de `« mort naturelle »` (§6.6 étape 3, §6.7).
-- Valeurs par défaut de l'espèce **humain** : **espérance de vie = 60 ans**, **% de mort naturelle = 10 % par an**.
+- Valeurs par défaut de l'espèce **humain** : genres **tout / féminin / masculin** ; reproduction **début 18 ans**, **pic 30 ans**, **fin 50 ans**, **probabilité au pic 20 %**, **pente 6** ; portée **M = 1**, **N = 4**, **X = 5 %** ; **taille de groupe 2** ; **% de divorce = 2 % par an** ; **espérance de vie = 60 ans**, **% de mort naturelle = 9 % par an**.
 
 > L'**âge à la naissance** reste **0**. En revanche, la **durée de vie** (espérance de vie + % de mort naturelle, par espèce) et l'**immortalité** (par individu, §3.3) sont **rétablies** dans cette version.
 
 ### 9.5. Catalogues
 
-- Listes de traits éditables (ajout / suppression dans chaque type). Listes par défaut : `rsrc/ExempleTraits/`.
+- Listes de traits éditables (ajout / suppression dans chaque type). Listes par défaut : **jeu de traits de référence fourni avec l'application**.
 - Catalogue des **espèces** (et leurs genres).
 - **Option consanguinité** (autorisée / interdite ; par défaut interdite).
 - Les **6 types de traits** sont **fixés** dans la V2. Les « types de pouvoirs » ne subsistent que pour la mutation forte (§6.1).
