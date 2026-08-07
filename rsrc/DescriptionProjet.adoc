@@ -571,15 +571,33 @@ else:
 						pouvoir = null
 ----
 
-==== 6.4.3. Déduplication des pouvoirs identiques d'une personne (correctif, cible v0.15.x)
+==== 6.4.3. Déduplication des pouvoirs quasi identiques d'une personne (par position et traits affichés, cible v0.15.x)
 
-Depuis la révision de l'arbre §6.4.2 (deux pouvoirs par branche, cible v0.15.0), une même personne peut se retrouver avec **plusieurs pouvoirs partageant exactement le même libellé** (deux branches, ou une branche à deux pouvoirs combinée aux autres sous-listes, peuvent aboutir au même libellé). On applique donc, **une fois par personne**, une étape de **déduplication**, effectuée **avant** l'attribution des puissances/maîtrises (§7.2) :
+Le nouvel algorithme §6.4.2 peut produire, chez une même personne, des pouvoirs **quasi identiques** : typiquement les **pouvoirs secondaires** (formes réduites « rends … » / « {aj} … sur … ») de deux feuilles proches, dont **les traits affichés de l'un sont inclus dans ceux de l'autre**. Exemples réellement observés : « rends {p} {et} » donnant à la fois `rends os feu et glace` et `rends os feu` ; ou deux pouvoirs secondaires `écorce sur mandibule à la place des os` et `écorce sur mandibule à la place des os et coté droit`. On applique donc, **une fois par personne** et **avant** l'attribution des puissances/maîtrises (§7.2), la déduplication suivante.
 
-* La **clé de doublon** est le **libellé** du pouvoir (clé d'affichage). Deux pouvoirs de libellé identique sont considérés comme **le même pouvoir**.
-* Pour chaque groupe de pouvoirs de libellé identique, on **ne conserve qu'une seule copie** : la **première** dans l'ordre de production (déterministe). Les autres copies sont **supprimées**. On **ne compare aucune statistique** — les puissances/maîtrises ne sont **pas encore attribuées** à ce stade.
-* Les **puissances/maîtrises** (§7.2) sont ensuite attribuées à la **liste déjà dédupliquée** : chaque libellé restant reçoit donc **un seul** couple puissance/maîtrise.
-* La déduplication porte sur la **liste des pouvoirs de la personne** (toutes sous-listes confondues) — jamais au sein d'une seule branche (les deux pouvoirs d'une même branche ont des libellés distincts, ils ne se dédupliquent pas entre eux).
-* **L'ADN n'est pas modifié** par cette étape (les traits générés `K…` déjà inscrits restent actifs). Le **déterminisme** est préservé et **aucune migration** n'est nécessaire (`FORMAT_VERSION` inchangé).
+**Traits affichés.** Pour chaque pouvoir, on considère l'**ensemble des traits qui apparaissent dans son libellé** — c'est-à-dire les traits des types **effectivement mentionnés dans le gabarit** de ce pouvoir (plus les traits générés `K` qui y figurent), et **non** l'ensemble complet des traits de la sous-liste. C'est essentiel : un pouvoir **secondaire** (p. ex. « {aj} {et} sur {r} à la place de {p} ») **n'affiche pas** le trait principal (l'action) de sa sous-liste ; deux secondaires issus de sous-listes différentes peuvent donc avoir des **traits affichés emboîtés** même si leurs sous-listes complètes diffèrent par leur principal.
+
+**Position.** Chaque feuille numérote ses pouvoirs par **position** : le **1ᵉʳ** pouvoir est **primaire**, le **2ᵉ** (s'il existe) est **secondaire**. On ne compare **que des pouvoirs de même position** — les primaires entre eux, les secondaires entre eux — **quelle que soit la branche**. Un primaire et un secondaire ne sont **jamais** comparés : cela **préserve** les deux pouvoirs d'une même feuille (le secondaire est toujours une forme réduite du primaire, mais on les garde tous deux).
+
+**Règle.** Au sein d'un même groupe de position, on compare les **ensembles de traits affichés** :
+
+* si l'ensemble de traits affichés d'un pouvoir est **inclus** (⊆) dans celui d'un autre pouvoir du même groupe, on **supprime le pouvoir ayant le moins de traits affichés** (on garde le plus « riche ») ;
+* en cas d'**égalité** exacte des ensembles de traits affichés, on supprime **le second** dans l'ordre de production ;
+* un pouvoir dont l'ensemble de traits affichés n'est **ni inclus ni incluant** vis-à-vis des autres du groupe est **conservé**.
+
+Formulé autrement : dans chaque groupe de position, on ne garde que les pouvoirs dont l'ensemble de traits affichés est **maximal** ; à ensembles **identiques**, seul le **premier** est conservé.
+
+Exemples (p1 et p2, **même position**, traits **affichés**) :
+
+* p1 affiche **tous** les traits de p2 **plus un** ⇒ p2 (moins de traits) est supprimé (`écorce sur mandibule à la place des os` disparaît au profit de `… et coté droit`).
+* p1 et p2 affichent **exactement** les mêmes traits ⇒ p2 est supprimé.
+* p2 affiche **tous** les traits de p1 **plus un (ou plus)** ⇒ p1 (moins de traits) est supprimé.
+
+Comme les **primaires** affichent toujours leur **trait principal** (action, sinon partie du corps), qui diffère d'une sous-liste à l'autre, ils ne se recouvrent (presque) jamais : en pratique, **ce sont les pouvoirs secondaires qui se dédupliquent**.
+
+**Garde-fou (libellé strictement identique).** En **dernière passe**, après la déduplication par position + traits affichés ci-dessus, si deux pouvoirs restants ont **exactement le même libellé affiché**, on n'en conserve qu'**un seul** : le **premier** dans l'ordre de production. Ce cas ne peut survenir que lorsque le catalogue contient des **traits homonymes** (deux traits distincts partageant le même libellé). Ce garde-fou garantit qu'**aucun libellé n'apparaît deux fois** dans la liste des pouvoirs d'une personne.
+
+Cette étape est purement fonctionnelle : elle **ne compare aucune statistique** (puissances/maîtrises pas encore attribuées), **ne consomme aucun tirage RNG**, **ne modifie pas l'ADN** (les traits générés `K…` déjà inscrits restent actifs), et préserve le **déterminisme**. Les **puissances/maîtrises** (§7.2) sont ensuite attribuées à la **liste dédupliquée**. `FORMAT_VERSION` inchangé.
 
 === 6.5. Avancement du temps et vieillissement
 

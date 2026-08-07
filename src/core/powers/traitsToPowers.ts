@@ -6,7 +6,11 @@ import { resolveResilience } from '../params/resolveResilience.js';
 import { resolveWeight } from '../params/resolveWeight.js';
 import type { Pouvoir } from '../model/pouvoir.js';
 import type { ADN, ResilientTrait } from '../model/adn.js';
-import { powerLabelFromSublist, type SublistGroups } from './powerLabelTree.js';
+import {
+  powerTemplatesFromSublist,
+  type SublistGroups,
+  type ResolvedTemplate,
+} from './powerLabelTree.js';
 
 /** Résultat : pouvoirs dérivés + ADN éventuellement enrichi par la génération `K` (§6.4.2). */
 export interface DerivePowersResult {
@@ -145,18 +149,57 @@ export function derivePowersFromTraits(
     pouvoirs.push(...transformSublist(sublist, working, catalog, params, rng));
   }
 
-  return { pouvoirs: dedupeByLabel(pouvoirs), adn: { traits: [...working.values()] } };
+  return { pouvoirs: dedupePowers(pouvoirs), adn: { traits: [...working.values()] } };
+}
+
+/** Position d'un pouvoir dans sa feuille : 0 = primaire, 1 = secondaire (suffixe `#n` de l'id). */
+function positionOf(pw: Pouvoir): number {
+  const m = pw.id.match(/#(\d+)$/);
+  return m ? Number(m[1]) : 0;
 }
 
 /**
- * Déduplication des pouvoirs de **libellé identique** d'une personne (§6.4.3, BUG-001).
- * On conserve la **1ʳᵉ** occurrence de chaque libellé (ordre de production) et on écarte les
- * suivantes. Étape purement fonctionnelle : exécutée **avant** l'attribution des puissances/maîtrises
- * (§7.2, déléguée aux appelants), elle ne compare **aucune** statistique, ne consomme **aucun** tirage
- * RNG et ne modifie pas l'ADN. Deux pouvoirs de libellés distincts (dont les deux d'une même feuille)
- * sont toujours conservés.
+ * Déduplication des pouvoirs **quasi identiques** d'une personne (§6.4.3, BUG-002). Exécutée **avant**
+ * l'attribution des puissances/maîtrises (§7.2, déléguée aux appelants) : elle ne compare **aucune**
+ * statistique, ne consomme **aucun** tirage RNG et ne modifie pas l'ADN.
+ *
+ * Deux passes :
+ *  1. **Par position + sous-ensemble de traits affichés** : on ne compare que des pouvoirs de **même
+ *     position** (primaires entre eux, secondaires entre eux) ; dans un groupe, tout pouvoir dont
+ *     l'ensemble de `traitIds` (= traits **affichés**, cf. `transformSublist`) est **inclus** dans
+ *     celui d'un autre est supprimé (le plus riche gagne ; à ensembles égaux, on garde le premier).
+ *     Un primaire et un secondaire ne sont jamais comparés ⇒ les deux pouvoirs d'une feuille sont
+ *     préservés. En pratique les primaires portent leur trait principal (unique par sous-liste) donc
+ *     ne se recouvrent pas : ce sont les **secondaires** qui se dédupliquent.
+ *  2. **Garde-fou libellé** : deux pouvoirs restants de libellé strictement identique ⇒ on ne garde
+ *     que le premier (ne survient qu'avec des traits **homonymes** au catalogue).
+ *
+ * Exporté pour les tests.
  */
-function dedupeByLabel(pouvoirs: Pouvoir[]): Pouvoir[] {
+export function dedupePowers(pouvoirs: Pouvoir[]): Pouvoir[] {
+  return guardIdenticalLabel(dedupeBySubsumption(pouvoirs));
+}
+
+function dedupeBySubsumption(pouvoirs: Pouvoir[]): Pouvoir[] {
+  const sets = pouvoirs.map((p) => new Set(p.traitIds));
+  const positions = pouvoirs.map(positionOf);
+  const isSubset = (a: Set<string>, b: Set<string>): boolean => {
+    if (a.size > b.size) return false;
+    for (const x of a) if (!b.has(x)) return false;
+    return true;
+  };
+  return pouvoirs.filter((_p, i) => {
+    for (let j = 0; j < pouvoirs.length; j++) {
+      if (j === i || positions[j] !== positions[i]) continue;
+      if (!isSubset(sets[i], sets[j])) continue; // traits(i) ⊄ traits(j)
+      if (sets[j].size > sets[i].size) return false; // i strictement inclus ⇒ supprimé
+      if (sets[j].size === sets[i].size && j < i) return false; // égaux ⇒ garder le premier
+    }
+    return true;
+  });
+}
+
+function guardIdenticalLabel(pouvoirs: Pouvoir[]): Pouvoir[] {
   const seen = new Set<string>();
   const kept: Pouvoir[] = [];
   for (const pw of pouvoirs) {
@@ -201,15 +244,13 @@ function transformSublist(
     groups[TYPE_TO_KEY[type]] = joinGroup(labels, type === 'Etat');
   }
 
-  const templates = powerLabelFromSublist(groups);
+  const templates = powerTemplatesFromSublist(groups);
   if (templates.length === 0) return [];
-
-  const baseTraitIds = sublist.map((t) => t.traitId);
 
   // Collecte des jetons `K` **distincts** dans l'ordre de première apparition (gabarit 1 puis 2).
   const distinctTokens: string[] = [];
-  for (const tmpl of templates) {
-    for (const token of tmpl.match(/\{(Ka|Ke|Kp|Kaj)\}/g) ?? []) {
+  for (const { label } of templates) {
+    for (const token of label.match(/\{(Ka|Ke|Kp|Kaj)\}/g) ?? []) {
       if (!distinctTokens.includes(token)) distinctTokens.push(token);
     }
   }
@@ -241,12 +282,17 @@ function transformSublist(
 
   // Construit un pouvoir par gabarit ; un gabarit référençant un jeton en échec est ignoré.
   const pouvoirs: Pouvoir[] = [];
-  templates.forEach((tmpl, index) => {
-    const tokens = tmpl.match(/\{(Ka|Ke|Kp|Kaj)\}/g) ?? [];
+  templates.forEach((tmpl: ResolvedTemplate, index) => {
+    const tokens = tmpl.label.match(/\{(Ka|Ke|Kp|Kaj)\}/g) ?? [];
     if (tokens.some((token) => resolved.get(token) === null)) return; // échec K requis ⇒ pas de pouvoir
 
-    let label = tmpl;
-    const traitIds = [...baseTraitIds];
+    // **Traits affichés** (§6.4.3) : uniquement les traits des types **mentionnés** dans ce gabarit,
+    // dans l'ordre de la sous-liste, plus les traits générés `K` qui y figurent. Un type présent mais
+    // non affiché (incohérences volontaires §6.4.2) n'est **pas** inclus.
+    const shown = new Set(tmpl.shownTypeKeys);
+    const traitIds = sublist.filter((t) => shown.has(TYPE_TO_KEY[t.type])).map((t) => t.traitId);
+
+    let label = tmpl.label;
     for (const token of tokens) {
       const gen = resolved.get(token)!; // non-null ici (sinon écarté ci-dessus)
       label = label.split(token).join(gen.label);
@@ -254,7 +300,7 @@ function transformSublist(
     }
 
     pouvoirs.push({
-      // id unique **par personne** ; suffixe d'index pour départager les 2 pouvoirs d'une feuille.
+      // id = traits affichés + suffixe de **position** (#0 primaire / #1 secondaire) dans la feuille.
       id: `pw:DERIVE:${traitIds.join('+')}#${index}`,
       label,
       template: 'DERIVE',

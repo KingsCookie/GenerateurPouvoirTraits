@@ -8,6 +8,8 @@
 
 **Bugfix**: 2026-08-07 — BUG-001 Déduplication des pouvoirs de libellé identique sur une personne (avant l'attribution P/M). Voir §6.4.3, FR-012, SC-006, `bugs/BUG-001.md`.
 
+**Bugfix**: 2026-08-07 — BUG-002 **Remplace** la déduplication par libellé (BUG-001) par une déduplication **par position + sous-ensemble de traits affichés**, complétée d'un **garde-fou** libellé. `Pouvoir.traitIds` = traits **affichés** (§6.4.3). Voir §6.4.3 (révisé), FR-011 (révisé), FR-013/FR-014, SC-007, `bugs/BUG-002.md`.
+
 **Input**: User description: "Modifier l'algorithme de transformation d'une sous-liste en pouvoir (§6.4.2) : certaines feuilles de l'arbre produisent désormais deux pouvoirs, un même jeton `Kx` est partagé entre les deux, et plusieurs formulations de feuilles sont ajustées. Cible v0.15.0."
 
 ## Contexte
@@ -26,7 +28,12 @@ La source de vérité `rsrc/DescriptionProjet.md` (§6.4.2) a **déjà été mis
 
 ### Session 2026-08-07 (BUG-001)
 
-- Q: Comment traiter une personne qui possède plusieurs pouvoirs de **libellé identique** (doublons induits par le nouvel algorithme) ? → A: **Déduplication par libellé**, effectuée **avant** l'attribution des puissances/maîtrises (§7.2). On conserve la **première** copie (ordre de production, déterministe) et on supprime les autres ; **aucune** statistique n'est comparée (elles ne sont pas encore attribuées à ce stade). Les P/M sont ensuite attribuées à la liste dédupliquée. Cf. §6.4.3.
+- Q: Comment traiter une personne qui possède plusieurs pouvoirs de **libellé identique** (doublons induits par le nouvel algorithme) ? → A: **Déduplication par libellé**, effectuée **avant** l'attribution des puissances/maîtrises (§7.2). On conserve la **première** copie (ordre de production, déterministe) et on supprime les autres ; **aucune** statistique n'est comparée (elles ne sont pas encore attribuées à ce stade). Les P/M sont ensuite attribuées à la liste dédupliquée. Cf. §6.4.3. **(Superseded par BUG-002.)**
+
+### Session 2026-08-07 (BUG-002)
+
+- Q: La déduplication par libellé laisse subsister des pouvoirs **quasi identiques** (formes secondaires « rends … » aux traits emboîtés). Quelle règle adopter ? → A: On **remplace** la règle par libellé par une déduplication **par position + sous-ensemble de traits affichés**. Précisions issues des exemples réels de l'auteur : (1) comparer les **traits affichés dans le libellé** (pas ceux de la sous-liste complète), car un secondaire n'affiche pas son trait principal ; (2) grouper par **position** (primaires entre eux, secondaires entre eux) **quelle que soit la branche** — les cas observés couvrent deux branches différentes (avec/sans état). Dans un groupe, on supprime tout pouvoir dont les traits affichés sont **inclus** dans ceux d'un autre (le plus riche gagne ; égalité ⇒ premier gardé). Un primaire et un secondaire ne sont jamais comparés (préserve les deux pouvoirs d'une feuille).
+- Q: Peut-il rester deux libellés identiques après cette règle ? → A: Oui, **uniquement** si le catalogue contient des **traits homonymes**. On ajoute donc un **garde-fou** en dernière passe : deux pouvoirs restants de libellé **strictement identique** ⇒ on n'en garde qu'un (le premier). Tout reste **avant** l'attribution P/M, sans stat comparée, sans tirage RNG, ADN inchangé. Cf. §6.4.3 (révisé).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -86,7 +93,8 @@ Les libellés de 24 feuilles sont mis à jour conformément au §6.4.2 : ajout d
 - **Regroupement multi-traits d'un même type** (« r1, r2 et r3 », « e1 ou e2 ») : s'applique à chacun des deux pouvoirs de la feuille, sans changement de règle.
 - **Populations déjà enregistrées** : les pouvoirs déjà générés et sérialisés ne sont **pas** recalculés à l'import ; seuls les pouvoirs **nouvellement générés** (genèse, reproduction, régénération, make-it-real) suivent le nouvel algorithme. Aucune migration de format n'est requise par cette seule feature.
 - **Ordre de consommation du RNG** : l'introduction d'un second pouvoir et le partage de `Kx` modifient la quantité/ordre des tirages `K` par rapport à l'ancien algorithme ; un ordre déterministe et documenté doit être défini (les résultats à seed fixe changeront par rapport à v0.14.x, mais resteront reproductibles).
-- **Pouvoirs de libellé identique sur une personne** *(BUG-001)* : conséquence possible du nouvel algorithme (deux branches, ou une branche à deux pouvoirs combinée aux autres sous-listes, aboutissant au même libellé) ; on n'en conserve qu'**une** copie (la 1ʳᵉ), déduplication effectuée **avant** l'attribution P/M (§6.4.3). La déduplication ne consomme **aucun** tirage RNG (déterminisme préservé).
+- **Pouvoirs de libellé identique sur une personne** *(BUG-001, superseded par BUG-002)* : traité désormais par la déduplication par **position + traits affichés**, puis par le garde-fou libellé (§6.4.3 révisé).
+- **Pouvoirs quasi identiques (traits affichés emboîtés)** *(BUG-002)* : deux pouvoirs de **même position** (deux secondaires, quelle que soit la branche) dont les **traits affichés** de l'un sont **inclus** dans ceux de l'autre ⇒ le pouvoir le **moins riche** est supprimé (FR-013). Ensembles **incomparables** ⇒ les deux sont conservés ; deux libellés strictement identiques ⇒ garde-fou (FR-014). Un **primaire** et un **secondaire** ne sont jamais comparés (les deux pouvoirs d'une feuille sont préservés).
 
 ## Requirements *(mandatory)*
 
@@ -102,8 +110,10 @@ Les libellés de 24 feuilles sont mis à jour conformément au §6.4.2 : ajout d
 - **FR-008**: La logique de transformation (arbre de libellé + résolution des jetons `K` + P/M) MUST demeurer dans le cœur pur `src/core` (sans dépendance Svelte/DOM/navigateur), le RNG étant passé en paramètre.
 - **FR-009**: Le comportement révisé MUST s'appliquer à **tous** les points de génération de pouvoirs (genèse, reproduction/hérédité, régénération de pouvoirs, make-it-real) de façon cohérente.
 - **FR-010**: Les 24 feuilles révisées MUST être conformes à la liste verbatim du §6.4.2, dont notamment : `a/e/p/r/aj/et` (1ᵉʳ pouvoir `"{a} {e} avec {aj} {et} sur {r} à la place de {p}"`), `a/et` (2ᵉ pouvoir `"rends {Ke} {et}"`), et `aj/et/r` (pouvoir unique `"{aj} {et} sur {r} à la place de {Kp}"`, sans `{Ka}`).
-- **FR-011**: Lorsqu'une sous-liste produit deux pouvoirs, leurs identifiants MUST être **uniques au sein d'une même personne** (p. ex. suffixe d'index `#0` / `#1` selon la position dans la sous-liste). L'unicité **globale** n'est PAS requise : deux personnes distinctes PEUVENT partager le même id de pouvoir (id dérivé du contenu).
-- **FR-012** *(BUG-001)*: Après dérivation de **tous** les pouvoirs d'une personne et **avant** l'attribution des puissances/maîtrises (§7.2), le système MUST **dédupliquer** les pouvoirs de **libellé identique** : ne conserver que la **première** copie (ordre de production, déterministe) et supprimer les autres, **sans** comparer aucune statistique (les P/M ne sont pas encore attribuées). Les P/M (§7.2) MUST ensuite être attribuées à la **liste dédupliquée** (un seul couple P/M par libellé restant). Les deux pouvoirs d'une **même** branche (libellés distincts) ne se dédupliquent pas entre eux. Cf. §6.4.3.
+- **FR-011** *(révisé BUG-002)*: Chaque pouvoir MUST porter, dans son champ `traitIds`, l'ensemble des **traits affichés** dans son libellé — c'est-à-dire les traits des types **mentionnés dans son gabarit** (§6.4.2) plus les traits générés `K` qui y figurent, et **non** l'ensemble complet des traits de la sous-liste. Chaque pouvoir MUST aussi porter sa **position** dans la feuille (1ᵉʳ pouvoir = **primaire**, 2ᵉ = **secondaire** ; encodée par le suffixe `#0`/`#1` de l'id). ~~Les identifiants sont uniques par personne.~~ *(superseded : l'unicité par personne n'est plus garantie — la clé d'affichage reste le **libellé**.)*
+- ~~**FR-012** *(BUG-001)*: Déduplication par **libellé identique**…~~ **Superseded par FR-013/FR-014 (BUG-002)** : remplacée par la déduplication par **position + sous-ensemble de traits affichés**, complétée d'un garde-fou libellé.
+- **FR-013** *(révisé BUG-002)*: Après dérivation de **tous** les pouvoirs d'une personne et **avant** l'attribution des puissances/maîtrises (§7.2), le système MUST **dédupliquer** les pouvoirs en ne comparant que ceux de **même position** (primaires entre eux, secondaires entre eux — jamais un primaire avec un secondaire) puis, dans chaque groupe, en **supprimant tout pouvoir dont l'ensemble de traits affichés (`traitIds`, FR-011) est inclus (⊆) dans celui d'un autre** (on garde le plus riche ; ensembles **égaux** ⇒ on garde le **premier**). La déduplication **ne compare aucune statistique**, **ne consomme aucun tirage RNG**, et **ne modifie pas l'ADN**.
+- **FR-014** *(BUG-002, garde-fou)*: En **dernière passe** (après FR-013, toujours avant §7.2), si deux pouvoirs restants ont **exactement le même libellé affiché**, le système MUST n'en conserver qu'**un** (le **premier** dans l'ordre de production). Ce cas ne survient que si le catalogue contient des **traits homonymes**. Les P/M (§7.2) MUST ensuite être attribuées à la **liste finale dédupliquée**.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -120,7 +130,8 @@ Les libellés de 24 feuilles sont mis à jour conformément au §6.4.2 : ajout d
 - **SC-003**: Pour toute feuille à `Kx` partagé, le trait résolu du jeton partagé est **identique** dans les deux pouvoirs dans 100 % des cas de tirage réussi (test déterministe).
 - **SC-004**: La transformation est reproductible à 100 % : deux exécutions à seed identique produisent des résultats bit-à-bit identiques (test de déterminisme).
 - **SC-005**: La suite de tests du cœur (`npm run test`) passe intégralement, et le lint/build restent verts.
-- **SC-006** *(BUG-001)*: Après génération, **aucune** personne ne conserve deux pouvoirs de libellé identique (vérifié par test seed-fixe : un cas produisant un doublon ⇒ une seule copie conservée, la première ; déterminisme reproductible).
+- ~~**SC-006** *(BUG-001)*: Après génération, aucune personne ne conserve deux pouvoirs de libellé identique…~~ **Superseded par SC-007 (BUG-002).**
+- **SC-007** *(révisé BUG-002)*: Après génération, pour toute personne : (a) **aucun** pouvoir n'a un ensemble de **traits affichés** inclus dans celui d'un autre pouvoir de **même position** ; et (b) **aucun libellé** n'apparaît deux fois (garde-fou). Vérifié par tests seed-fixe (p2⊂p1 ⇒ p2 supprimé ; p1⊂p2 ⇒ p1 supprimé ; égalité ⇒ 1ᵉʳ gardé ; incomparables ⇒ 2 conservés ; primaire↔secondaire jamais fusionnés ; homonymes ⇒ garde-fou ; déterminisme).
 
 ## Assumptions
 

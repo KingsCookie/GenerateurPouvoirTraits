@@ -6,11 +6,15 @@
 
 **Bugfix**: 2026-08-07 — BUG-001 Ajout d'une étape de **déduplication par libellé** dans `derivePowersFromTraits` (`traitsToPowers.ts`), exécutée **avant** l'attribution P/M par les appelants. Cœur pur, déterministe, sans dépendance ni migration.
 
+**Bugfix**: 2026-08-07 — BUG-002 **Remplace** la déduplication par libellé par une déduplication **par position + sous-ensemble de traits affichés** (`dedupePowers` = `dedupeBySubsumption` + garde-fou libellé). `powerLabelTree.ts` expose les **types affichés** par gabarit (`powerTemplatesFromSublist`) ; `transformSublist` pose `Pouvoir.traitIds` = **traits affichés**. Cœur pur, déterministe, sans dépendance ni migration.
+
 ## Summary
 
 Réviser l'algorithme §6.4.2 (`traits → pouvoir`) pour que **certaines feuilles produisent deux pouvoirs** au lieu d'un, avec un **jeton `Kx` partagé** (un seul tirage réutilisé), des **P/M indépendantes** par pouvoir, et des **libellés révisés** sur 24 feuilles. Changement **localisé** au cœur pur `src/core/powers` : `powerLabelTree.ts` (l'arbre renvoie 1 ou 2 gabarits) et `traitsToPowers.ts` (`transformSublist` renvoie `Pouvoir[]` de 0 à 2, résout les `K` partagés une fois, suffixe l'id par index). Tous les points de génération (genèse, reproduction, régénération, make-it-real) passent par `derivePowersFromTraits` et bénéficient donc du changement sans modification propre. Cible **v0.15.0**. Aucune dépendance ajoutée, aucune migration de persistance.
 
 **Correctif BUG-001 (post-livraison).** Le nouvel algorithme peut faire apparaître **plusieurs pouvoirs de libellé identique** sur une même personne. `derivePowersFromTraits` déduplique donc sa **liste finale par libellé** (garde la 1ʳᵉ occurrence, ordre de production) **avant** de retourner — donc **avant** que les appelants n'attribuent les P/M (§7.2) via `inheritStats` mappé par index. La déduplication est purement fonctionnelle (aucun tirage RNG), déterministe, et n'altère pas l'ADN (les traits `K` déjà inscrits restent actifs). Cible **v0.15.x** (patch).
+
+**Correctif BUG-002 (remplace BUG-001).** La déduplication par libellé ne capture pas les **quasi-doublons** (formes secondaires « rends … » aux traits emboîtés, parfois issues de **deux branches** distinctes). Deux constats ont guidé le correctif (exemples réels de l'auteur) : (a) comparer les **traits affichés** dans le libellé, pas ceux de la sous-liste complète (un secondaire n'affiche pas son principal, donc deux secondaires de sous-listes différentes peuvent avoir des traits affichés emboîtés) ; (b) grouper par **position** (primaires/secondaires), pas par branche (les cas observés traversent deux branches). On remplace donc `dedupeByLabel` par `dedupePowers` = (1) `dedupeBySubsumption` : compare les pouvoirs de **même position** ; dans chaque groupe, supprime tout pouvoir dont les **traits affichés** (`Pouvoir.traitIds`) sont inclus dans ceux d'un autre (le plus riche gagne ; égalité ⇒ 1ᵉʳ gardé) ; primaire↔secondaire jamais comparés (les 2 pouvoirs d'une feuille sont préservés) ; puis (2) **garde-fou** libellé final (traits homonymes). `powerLabelTree.ts` expose `powerTemplatesFromSublist` (types **affichés** par gabarit) ; `transformSublist` pose `Pouvoir.traitIds` = traits affichés ; la position vient du suffixe `#0`/`#1` de l'id. Toujours **avant** l'attribution P/M, aucun tirage RNG, ADN inchangé, déterministe, `FORMAT_VERSION` inchangé. Cible **v0.15.2** (patch).
 
 ## Technical Context
 
@@ -71,8 +75,11 @@ specs/016-revision-algo-pouvoir/
 ```text
 src/core/powers/
 ├── powerLabelTree.ts     # MODIFIÉ : treeTemplate renvoie 1 ou 2 gabarits (24 feuilles révisées)
+│                         #   + BUG-002 : powerTemplatesFromSublist expose les types AFFICHÉS par gabarit
 ├── traitsToPowers.ts     # MODIFIÉ : transformSublist → Pouvoir[] (0–2) ; résolution K partagée ; id #index
-│                         #   + BUG-001 : dédup par libellé de la liste finale (1ʳᵉ gardée) avant retour
+│                         #   + BUG-001 (RETIRÉ) : dédup par libellé
+│                         #   + BUG-002 : traitIds = traits AFFICHÉS ; dedupePowers = dedupeBySubsumption
+│                         #     (par position + sous-ensemble de traits affichés) + garde-fou libellé
 ├── inheritStats.ts       # INCHANGÉ (P/M par pouvoir, déjà mappé par index côté appelants)
 ├── regenerate.ts         # INCHANGÉ (map sur pouvoirs → auto-gère 2 pouvoirs)
 └── strongMutation.ts     # INCHANGÉ (hors §6.4.2)
@@ -83,7 +90,9 @@ src/core/genesis/genesis.ts    # INCHANGÉ (passe par derivePowersFromTraits)
 tests/unit/
 ├── power-label-tree.test.ts    # ÉTENDU : 24 feuilles révisées + non-régression feuilles inchangées
 ├── traits-to-powers.test.ts    # ÉTENDU/NOUVEAU : 2 pouvoirs, Kx partagé, échec K, id unique/personne
-│                               #   + BUG-001 : doublon de libellé → 1 copie (1ʳᵉ), déterminisme
+│                               #   + BUG-001 (RETIRÉ) : dédup par libellé
+│                               #   + BUG-002 : sous-ensemble (p2⊂p1, p1⊂p2, égalité, incomparables),
+│                               #     identifiant Nx, garde-fou homonymes, déterminisme
 └── regenerate-powers.test.ts   # ÉTENDU : P/M indépendantes des 2 pouvoirs
 
 package.json                    # version 0.14.1 → 0.15.0 (à l'implémentation)

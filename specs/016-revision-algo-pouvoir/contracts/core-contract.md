@@ -25,22 +25,33 @@ Contrat exprimé en invariants vérifiables par tests Vitest à seed fixe.
 - **INV-C6 (ordre des tirages)** : les jetons `K` distincts sont tirés dans l'ordre de **première
   apparition** en scannant le 1ᵉʳ gabarit puis le 2ᵉ ; aucune puissance/maîtrise n'est tirée ici (déléguée
   à l'appelant, après dérivation).
-- **INV-C7 (id)** : chaque pouvoir reçoit `pw:DERIVE:${traitIds.join('+')}#<index>` ; les deux pouvoirs
-  d'une sous-liste ont des id distincts.
-- **INV-C8 (traitIds)** : `traitIds` = traits de la sous-liste + traits générés `K` **référencés** par ce
-  pouvoir.
+- **INV-C7 (id + position)** : chaque pouvoir reçoit `pw:DERIVE:${traitIds.join('+')}#<index>` où `<index>`
+  est la **position** dans la feuille (`0` = primaire, `1` = secondaire). `traitIds` étant les **traits
+  affichés** (INV-C8 révisé), l'id peut se répéter chez une personne (deux pouvoirs de même position aux
+  traits affichés incomparables) : l'unicité par personne n'est **plus** garantie ; la clé d'affichage
+  reste le **libellé**.
+- **INV-C8 (traitIds = traits affichés — révisé BUG-002)** : `traitIds` = traits des types **mentionnés
+  dans le gabarit** de ce pouvoir (dans l'ordre de la sous-liste) + traits générés `K` **affichés**. Un
+  type présent dans la sous-liste mais **non affiché** par le gabarit (incohérences volontaires §6.4.2)
+  n'y figure **pas**.
 
 ## `derivePowersFromTraits(adn, catalog, params, rng): { pouvoirs: Pouvoir[]; adn: ADN }`
 
 - **INV-C9** : `pouvoirs` = concaténation, dans l'ordre des sous-listes, des `transformSublist(...)` ;
-  au sein d'une feuille, ordre X puis Y — **puis** déduplication par libellé (INV-C14).
+  au sein d'une feuille, ordre X puis Y — **puis** déduplication (INV-C15/INV-C16).
 - **INV-C10 (pureté)** : ne mute pas l'ADN d'entrée ; renvoie une copie enrichie par les traits générés `K`.
 - **INV-C11 (déterminisme)** : à (seed, ADN, params, catalogue) identiques, sortie identique.
-- **INV-C14 (déduplication par libellé — BUG-001)** : avant le `return`, la liste `pouvoirs` est
-  dédupliquée par **libellé** en conservant la **1ʳᵉ** occurrence (ordre de production) ; les suivantes de
-  même libellé sont écartées. Aucune statistique n'est comparée (P/M encore à 0), **aucun** tirage RNG n'est
-  consommé, l'ADN n'est **pas** modifié. Deux pouvoirs de libellés distincts (dont les deux d'une même
-  feuille) sont toujours conservés.
+- **INV-C14** : ~~(déduplication par libellé — BUG-001) conserve la 1ʳᵉ occurrence de chaque libellé.~~
+  **Superseded par INV-C15/INV-C16 (BUG-002)** — `dedupeByLabel` est retiré.
+- **INV-C15 (déduplication par position + sous-ensemble — BUG-002)** : avant le `return`, les pouvoirs
+  sont regroupés par **position** (primaires `#0` entre eux, secondaires `#1` entre eux) ; dans chaque
+  groupe, tout pouvoir dont l'ensemble de **traits affichés** (`traitIds`, INV-C8) est **inclus (⊆)** dans
+  celui d'un autre du groupe est **supprimé** (on garde les ensembles **maximaux** ; ensembles **égaux** ⇒
+  on garde le **1ᵉʳ**). Un primaire et un secondaire ne sont **jamais** comparés (les deux pouvoirs d'une
+  feuille sont préservés). Aucune statistique comparée (P/M à 0), **aucun** tirage RNG, ADN **non** modifié.
+- **INV-C16 (garde-fou libellé — BUG-002)** : après INV-C15, si deux pouvoirs restants ont un **libellé
+  strictement identique**, seul le **1ᵉʳ** (ordre de production) est conservé. Ne peut se produire qu'avec
+  des **traits homonymes** au catalogue.
 
 ## Contrat d'intégration (appelants)
 
