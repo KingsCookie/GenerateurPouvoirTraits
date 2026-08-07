@@ -6,6 +6,8 @@
 
 **Status**: Draft
 
+**Bugfix**: 2026-08-07 — BUG-001 Déduplication des pouvoirs de libellé identique sur une personne (avant l'attribution P/M). Voir §6.4.3, FR-012, SC-006, `bugs/BUG-001.md`.
+
 **Input**: User description: "Modifier l'algorithme de transformation d'une sous-liste en pouvoir (§6.4.2) : certaines feuilles de l'arbre produisent désormais deux pouvoirs, un même jeton `Kx` est partagé entre les deux, et plusieurs formulations de feuilles sont ajustées. Cible v0.15.0."
 
 ## Contexte
@@ -21,6 +23,10 @@ La source de vérité `rsrc/DescriptionProjet.md` (§6.4.2) a **déjà été mis
 ### Session 2026-08-06
 
 - Q: Comment différencier l'id des deux pouvoirs issus d'une même sous-liste ? → A: Suffixe d'index (`#0` / `#1`) selon la position du pouvoir dans la sous-liste. L'unicité de l'id n'est requise **que par personne** ; deux personnes distinctes peuvent partager le **même** id de pouvoir (id dérivé du contenu, aucun registre global), comportement **voulu** et déjà existant.
+
+### Session 2026-08-07 (BUG-001)
+
+- Q: Comment traiter une personne qui possède plusieurs pouvoirs de **libellé identique** (doublons induits par le nouvel algorithme) ? → A: **Déduplication par libellé**, effectuée **avant** l'attribution des puissances/maîtrises (§7.2). On conserve la **première** copie (ordre de production, déterministe) et on supprime les autres ; **aucune** statistique n'est comparée (elles ne sont pas encore attribuées à ce stade). Les P/M sont ensuite attribuées à la liste dédupliquée. Cf. §6.4.3.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -80,6 +86,7 @@ Les libellés de 24 feuilles sont mis à jour conformément au §6.4.2 : ajout d
 - **Regroupement multi-traits d'un même type** (« r1, r2 et r3 », « e1 ou e2 ») : s'applique à chacun des deux pouvoirs de la feuille, sans changement de règle.
 - **Populations déjà enregistrées** : les pouvoirs déjà générés et sérialisés ne sont **pas** recalculés à l'import ; seuls les pouvoirs **nouvellement générés** (genèse, reproduction, régénération, make-it-real) suivent le nouvel algorithme. Aucune migration de format n'est requise par cette seule feature.
 - **Ordre de consommation du RNG** : l'introduction d'un second pouvoir et le partage de `Kx` modifient la quantité/ordre des tirages `K` par rapport à l'ancien algorithme ; un ordre déterministe et documenté doit être défini (les résultats à seed fixe changeront par rapport à v0.14.x, mais resteront reproductibles).
+- **Pouvoirs de libellé identique sur une personne** *(BUG-001)* : conséquence possible du nouvel algorithme (deux branches, ou une branche à deux pouvoirs combinée aux autres sous-listes, aboutissant au même libellé) ; on n'en conserve qu'**une** copie (la 1ʳᵉ), déduplication effectuée **avant** l'attribution P/M (§6.4.3). La déduplication ne consomme **aucun** tirage RNG (déterminisme préservé).
 
 ## Requirements *(mandatory)*
 
@@ -96,6 +103,7 @@ Les libellés de 24 feuilles sont mis à jour conformément au §6.4.2 : ajout d
 - **FR-009**: Le comportement révisé MUST s'appliquer à **tous** les points de génération de pouvoirs (genèse, reproduction/hérédité, régénération de pouvoirs, make-it-real) de façon cohérente.
 - **FR-010**: Les 24 feuilles révisées MUST être conformes à la liste verbatim du §6.4.2, dont notamment : `a/e/p/r/aj/et` (1ᵉʳ pouvoir `"{a} {e} avec {aj} {et} sur {r} à la place de {p}"`), `a/et` (2ᵉ pouvoir `"rends {Ke} {et}"`), et `aj/et/r` (pouvoir unique `"{aj} {et} sur {r} à la place de {Kp}"`, sans `{Ka}`).
 - **FR-011**: Lorsqu'une sous-liste produit deux pouvoirs, leurs identifiants MUST être **uniques au sein d'une même personne** (p. ex. suffixe d'index `#0` / `#1` selon la position dans la sous-liste). L'unicité **globale** n'est PAS requise : deux personnes distinctes PEUVENT partager le même id de pouvoir (id dérivé du contenu).
+- **FR-012** *(BUG-001)*: Après dérivation de **tous** les pouvoirs d'une personne et **avant** l'attribution des puissances/maîtrises (§7.2), le système MUST **dédupliquer** les pouvoirs de **libellé identique** : ne conserver que la **première** copie (ordre de production, déterministe) et supprimer les autres, **sans** comparer aucune statistique (les P/M ne sont pas encore attribuées). Les P/M (§7.2) MUST ensuite être attribuées à la **liste dédupliquée** (un seul couple P/M par libellé restant). Les deux pouvoirs d'une **même** branche (libellés distincts) ne se dédupliquent pas entre eux. Cf. §6.4.3.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -112,6 +120,7 @@ Les libellés de 24 feuilles sont mis à jour conformément au §6.4.2 : ajout d
 - **SC-003**: Pour toute feuille à `Kx` partagé, le trait résolu du jeton partagé est **identique** dans les deux pouvoirs dans 100 % des cas de tirage réussi (test déterministe).
 - **SC-004**: La transformation est reproductible à 100 % : deux exécutions à seed identique produisent des résultats bit-à-bit identiques (test de déterminisme).
 - **SC-005**: La suite de tests du cœur (`npm run test`) passe intégralement, et le lint/build restent verts.
+- **SC-006** *(BUG-001)*: Après génération, **aucune** personne ne conserve deux pouvoirs de libellé identique (vérifié par test seed-fixe : un cas produisant un doublon ⇒ une seule copie conservée, la première ; déterminisme reproductible).
 
 ## Assumptions
 

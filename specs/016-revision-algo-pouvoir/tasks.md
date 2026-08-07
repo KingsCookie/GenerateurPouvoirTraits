@@ -6,6 +6,8 @@
 
 **Tests**: **OBLIGATOIRES** (Constitution Principe V — cœur pur testé à seed fixe). Écrits avant l'implémentation et vérifiés **rouges** d'abord.
 
+**Bugfix**: 2026-08-07 — BUG-001 Déduplication des pouvoirs de libellé identique (voir Phase 7 ci-dessous, `bugs/BUG-001.md`).
+
 **Organization**: par user story (P1→P3). ⚠️ Les stories touchent les **mêmes** fichiers cœur (`powerLabelTree.ts`, `traitsToPowers.ts`) : leurs tâches d'implémentation sont **séquentielles** (pas de `[P]` inter-stories sur un même fichier). Les tâches de tests dans des fichiers distincts peuvent être `[P]`.
 
 ## Format: `[ID] [P?] [Story] Description`
@@ -103,11 +105,32 @@
 
 ---
 
+## Phase 7: Bugfix BUG-001 — Déduplication des pouvoirs de libellé identique
+
+**Goal**: une personne ne conserve **jamais** deux pouvoirs de libellé identique. La déduplication garde la **1ʳᵉ** copie (ordre de production) et s'exécute **avant** l'attribution des puissances/maîtrises (§7.2), sans comparer aucune statistique et sans consommer de RNG.
+
+**Independent Test**: une personne dont la dérivation produit deux pouvoirs de même libellé (deux branches, ou une branche à deux pouvoirs + autres sous-listes) n'en conserve qu'un ; résultat déterministe à seed fixe.
+
+### Tests (à écrire d'abord, doivent échouer)
+
+- [X] T017 [BUG-001] Test seed-fixe de déduplication dans `tests/unit/traits-to-powers.test.ts` : un ADN produisant **deux pouvoirs de libellé identique** ⇒ `derivePowersFromTraits` n'en renvoie **qu'un** (la 1ʳᵉ occurrence, `puissance`/`maitrise` encore à 0), les libellés distincts d'une même branche ne sont **pas** fusionnés, et le résultat est identique à seed égale (déterminisme). (FR-012, SC-006, §6.4.3) — T-DEDUP / T-DEDUP-DISTINCT / T-DEDUP-DET
+
+### Implémentation
+
+- [X] T018 [BUG-001] Dans `src/core/powers/traitsToPowers.ts`, à la **fin** de `derivePowersFromTraits` (après la boucle sur les sous-listes, **avant** le `return`), dédupliquer `pouvoirs` par **libellé** via `dedupeByLabel` : parcourir dans l'ordre de production et ne conserver que la **1ʳᵉ** occurrence de chaque libellé (les suivantes sont écartées). Aucune comparaison de P/M (elles valent 0 à ce stade), aucun tirage RNG, ADN inchangé. Les appelants (`reproduce.ts`, `regenerate.ts`) attribuent ensuite les P/M à la liste déjà dédupliquée ; la genèse (pouvoir unique de mutation forte) n'est pas concernée. (FR-012, INV-C14)
+
+### Polish
+
+- [X] T019 [BUG-001] Réaligner les tests seed-fixe existants dont les sorties changent **uniquement** du fait de la déduplication : **aucun réalignement nécessaire** — la suite complète (350 tests) reste verte, aucun scénario seed-fixe existant ne produisait de doublon de libellé.
+- [X] T020 [P] [BUG-001] Bumper `package.json` en version **patch** (0.15.0 → 0.15.1) puis portes de qualité finales : `npm run lint`, `npm run build`, `npm run test` **tous verts**.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
 
-- **Setup (T001)** → **Foundational (T002–T004)** → **US1 (T005–T008)** → **US2 (T009–T010)** → **US3 (T011–T012)** → **Polish (T013–T016)**.
+- **Setup (T001)** → **Foundational (T002–T004)** → **US1 (T005–T008)** → **US2 (T009–T010)** → **US3 (T011–T012)** → **Polish (T013–T016)** → **Bugfix BUG-001 (T017–T020)**.
 - Foundational **bloque** toutes les stories (refactor de forme + id).
 
 ### Ordre des stories (fichiers partagés)

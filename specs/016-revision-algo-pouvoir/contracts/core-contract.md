@@ -33,9 +33,14 @@ Contrat exprimé en invariants vérifiables par tests Vitest à seed fixe.
 ## `derivePowersFromTraits(adn, catalog, params, rng): { pouvoirs: Pouvoir[]; adn: ADN }`
 
 - **INV-C9** : `pouvoirs` = concaténation, dans l'ordre des sous-listes, des `transformSublist(...)` ;
-  au sein d'une feuille, ordre X puis Y.
+  au sein d'une feuille, ordre X puis Y — **puis** déduplication par libellé (INV-C14).
 - **INV-C10 (pureté)** : ne mute pas l'ADN d'entrée ; renvoie une copie enrichie par les traits générés `K`.
 - **INV-C11 (déterminisme)** : à (seed, ADN, params, catalogue) identiques, sortie identique.
+- **INV-C14 (déduplication par libellé — BUG-001)** : avant le `return`, la liste `pouvoirs` est
+  dédupliquée par **libellé** en conservant la **1ʳᵉ** occurrence (ordre de production) ; les suivantes de
+  même libellé sont écartées. Aucune statistique n'est comparée (P/M encore à 0), **aucun** tirage RNG n'est
+  consommé, l'ADN n'est **pas** modifié. Deux pouvoirs de libellés distincts (dont les deux d'une même
+  feuille) sont toujours conservés.
 
 ## Contrat d'intégration (appelants)
 

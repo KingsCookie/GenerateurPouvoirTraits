@@ -4,9 +4,13 @@
 
 **Input**: Feature specification from `/specs/016-revision-algo-pouvoir/spec.md`
 
+**Bugfix**: 2026-08-07 — BUG-001 Ajout d'une étape de **déduplication par libellé** dans `derivePowersFromTraits` (`traitsToPowers.ts`), exécutée **avant** l'attribution P/M par les appelants. Cœur pur, déterministe, sans dépendance ni migration.
+
 ## Summary
 
 Réviser l'algorithme §6.4.2 (`traits → pouvoir`) pour que **certaines feuilles produisent deux pouvoirs** au lieu d'un, avec un **jeton `Kx` partagé** (un seul tirage réutilisé), des **P/M indépendantes** par pouvoir, et des **libellés révisés** sur 24 feuilles. Changement **localisé** au cœur pur `src/core/powers` : `powerLabelTree.ts` (l'arbre renvoie 1 ou 2 gabarits) et `traitsToPowers.ts` (`transformSublist` renvoie `Pouvoir[]` de 0 à 2, résout les `K` partagés une fois, suffixe l'id par index). Tous les points de génération (genèse, reproduction, régénération, make-it-real) passent par `derivePowersFromTraits` et bénéficient donc du changement sans modification propre. Cible **v0.15.0**. Aucune dépendance ajoutée, aucune migration de persistance.
+
+**Correctif BUG-001 (post-livraison).** Le nouvel algorithme peut faire apparaître **plusieurs pouvoirs de libellé identique** sur une même personne. `derivePowersFromTraits` déduplique donc sa **liste finale par libellé** (garde la 1ʳᵉ occurrence, ordre de production) **avant** de retourner — donc **avant** que les appelants n'attribuent les P/M (§7.2) via `inheritStats` mappé par index. La déduplication est purement fonctionnelle (aucun tirage RNG), déterministe, et n'altère pas l'ADN (les traits `K` déjà inscrits restent actifs). Cible **v0.15.x** (patch).
 
 ## Technical Context
 
@@ -68,6 +72,7 @@ specs/016-revision-algo-pouvoir/
 src/core/powers/
 ├── powerLabelTree.ts     # MODIFIÉ : treeTemplate renvoie 1 ou 2 gabarits (24 feuilles révisées)
 ├── traitsToPowers.ts     # MODIFIÉ : transformSublist → Pouvoir[] (0–2) ; résolution K partagée ; id #index
+│                         #   + BUG-001 : dédup par libellé de la liste finale (1ʳᵉ gardée) avant retour
 ├── inheritStats.ts       # INCHANGÉ (P/M par pouvoir, déjà mappé par index côté appelants)
 ├── regenerate.ts         # INCHANGÉ (map sur pouvoirs → auto-gère 2 pouvoirs)
 └── strongMutation.ts     # INCHANGÉ (hors §6.4.2)
@@ -78,6 +83,7 @@ src/core/genesis/genesis.ts    # INCHANGÉ (passe par derivePowersFromTraits)
 tests/unit/
 ├── power-label-tree.test.ts    # ÉTENDU : 24 feuilles révisées + non-régression feuilles inchangées
 ├── traits-to-powers.test.ts    # ÉTENDU/NOUVEAU : 2 pouvoirs, Kx partagé, échec K, id unique/personne
+│                               #   + BUG-001 : doublon de libellé → 1 copie (1ʳᵉ), déterminisme
 └── regenerate-powers.test.ts   # ÉTENDU : P/M indépendantes des 2 pouvoirs
 
 package.json                    # version 0.14.1 → 0.15.0 (à l'implémentation)
