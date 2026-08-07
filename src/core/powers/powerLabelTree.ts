@@ -16,13 +16,22 @@ export interface SublistGroups {
   et?: string; // État
 }
 
+/** Un gabarit résolu d'une feuille : le libellé + les clés de type **affichées** dans ce gabarit. */
+export interface ResolvedTemplate {
+  /** Libellé substitué (types présents remplacés ; jetons `{Ka}…{Kaj}` laissés littéraux). */
+  label: string;
+  /** Clés de type effectivement **mentionnées** dans le gabarit (`a`/`e`/`p`/`aj`/`r`/`et`). */
+  shownTypeKeys: (keyof SublistGroups)[];
+}
+
 /**
- * Renvoie les **gabarits** de libellé d'une sous-liste selon la présence des types (0, 1 ou 2), ou `[]`.
- * Les jetons `{a} {e} {p} {aj} {r} {et}` des types présents sont substitués par leurs libellés.
- * Les jetons de génération `{Ka} {Ke} {Kp} {Kaj}` (types absents) sont **laissés littéraux** :
- * c'est l'appelant (derivePowersFromTraits) qui tente la génération `K` et les résout.
+ * Renvoie les **gabarits** résolus d'une sous-liste (0, 1 ou 2), ou `[]` (feuille terminale).
+ * Pour chaque gabarit : le libellé substitué **et** la liste des clés de type qui y **figurent**
+ * (nécessaire pour identifier les « traits affichés » du pouvoir, §6.4.3). Un type peut être présent
+ * dans la sous-liste sans figurer dans le gabarit (« incohérences » volontaires §6.4.2) : il n'est
+ * alors **pas** compté comme affiché.
  */
-export function powerLabelFromSublist(groups: SublistGroups): string[] {
+export function powerTemplatesFromSublist(groups: SublistGroups): ResolvedTemplate[] {
   const a = groups.a !== undefined;
   const e = groups.e !== undefined;
   const p = groups.p !== undefined;
@@ -33,7 +42,24 @@ export function powerLabelFromSublist(groups: SublistGroups): string[] {
   const raw = treeTemplate(a, e, p, aj, r, et);
   if (raw === null) return [];
   // Une feuille peut porter deux gabarits séparés par « ; » (§6.4.2, v0.15.0).
-  return raw.split(';').map((tmpl) => fillPresent(tmpl.trim(), groups));
+  return raw.split(';').map((part) => {
+    const tmpl = part.trim();
+    // Clés de type affichées = jetons {a}/{e}/{p}/{aj}/{r}/{et} présents dans le gabarit brut.
+    // Alternatives longues d'abord (aj/et) pour éviter toute ambiguïté avec a/e.
+    const shown = new Set<keyof SublistGroups>();
+    for (const m of tmpl.match(/\{(aj|et|a|e|p|r)\}/g) ?? []) {
+      shown.add(m.slice(1, -1) as keyof SublistGroups);
+    }
+    return { label: fillPresent(tmpl, groups), shownTypeKeys: [...shown] };
+  });
+}
+
+/**
+ * Renvoie les **libellés** des gabarits d'une sous-liste (0, 1 ou 2), ou `[]`. Enveloppe de
+ * `powerTemplatesFromSublist` (compat : ne renvoie que les libellés).
+ */
+export function powerLabelFromSublist(groups: SublistGroups): string[] {
+  return powerTemplatesFromSublist(groups).map((t) => t.label);
 }
 
 // Structure if/else EXACTE du §6.4.2 (verbatim). Renvoie le gabarit brut (jetons non substitués),

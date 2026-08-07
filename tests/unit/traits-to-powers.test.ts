@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { buildSublists, derivePowersFromTraits } from '../../src/core/powers/traitsToPowers.js';
+import {
+  buildSublists,
+  derivePowersFromTraits,
+  dedupePowers,
+} from '../../src/core/powers/traitsToPowers.js';
+import type { Pouvoir } from '../../src/core/model/pouvoir.js';
 import { defaultParameters, type Parameters } from '../../src/core/params/parameters.js';
 import type { Catalog } from '../../src/core/model/trait.js';
 import type { ADN } from '../../src/core/model/adn.js';
@@ -186,8 +191,10 @@ describe('§6.4.2 — jeton Kx partagé entre deux pouvoirs (US2, v0.15.0)', () 
       P,
       fakeRng({ chances: [true, true] }),
     );
+    // Traits **affichés** (§6.4.3, BUG-002) : le gabarit 1 « {Ka} {e} avec {aj} {et} sur {Kp} »
+    // montre e/aj/et + Ka/Kp ; le gabarit 2 « {aj} {et} sur {Kp} » ne montre PAS {e}.
     expect(res.pouvoirs[0].traitIds).toEqual(['e1', 'aj1', 'et1', 'a1', 'p1']);
-    expect(res.pouvoirs[1].traitIds).toEqual(['e1', 'aj1', 'et1', 'p1']);
+    expect(res.pouvoirs[1].traitIds).toEqual(['aj1', 'et1', 'p1']);
   });
 
   it('T-KFAIL-SHARED : échec du {Kp} partagé ⇒ aucun des deux pouvoirs', () => {
@@ -244,45 +251,79 @@ function catDupLabel(): Catalog {
   } as Catalog;
 }
 
-describe('§6.4.3 — déduplication des pouvoirs de libellé identique (BUG-001)', () => {
-  // a1 et a2 (mêmes libellé « courir ») ⇒ 2 sous-listes principales [[a1],[a2]] ; feuille a-seule
-  // « {a} {Ke} » ⇒ « courir feu » deux fois (un tirage {Ke} réussi par sous-liste).
-  it('T-DEDUP : deux pouvoirs de libellé identique ⇒ une seule copie (la 1ʳᵉ)', () => {
+// Construit un pouvoir DERIVE minimal pour tester la déduplication (BUG-002) de façon isolée.
+// `pos` = position dans la feuille (#0 primaire / #1 secondaire) encodée dans l'id.
+function pw(id: string, label: string, traitIds: string[], pos: number): Pouvoir {
+  return { id: `${id}#${pos}`, label, template: 'DERIVE', traitIds, puissance: 0, maitrise: 0 };
+}
+
+describe('§6.4.3 — déduplication par position + traits affichés (BUG-002)', () => {
+  it('T-SUBSET : traits affichés de p2 ⊂ ceux de p1 (même position) ⇒ p2 (moins riche) supprimé', () => {
+    const p1 = pw('pw:A', 'écorce sur mandibule à la place des os et coté droit', ['aj', 'r', 'p', 'et'], 1); // prettier-ignore
+    const p2 = pw('pw:B', 'écorce sur mandibule à la place des os', ['aj', 'r', 'p'], 1);
+    expect(dedupePowers([p1, p2]).map((x) => x.label)).toEqual([
+      'écorce sur mandibule à la place des os et coté droit',
+    ]);
+  });
+
+  it('T-SUBSET-REVERSE : si c’est p1 qui manque un trait (p1 ⊂ p2) ⇒ p1 supprimé', () => {
+    const p1 = pw('pw:A', 'rends os feu', ['p', 'e'], 1);
+    const p2 = pw('pw:B', 'rends os feu et glace', ['p', 'e', 'e2'], 1);
+    expect(dedupePowers([p1, p2]).map((x) => x.label)).toEqual(['rends os feu et glace']);
+  });
+
+  it('T-EQUAL : traits affichés identiques (même position) ⇒ on garde le premier', () => {
+    const p1 = pw('pw:A', 'rends griffes gelé', ['aj', 'et'], 1);
+    const p2 = pw('pw:B', 'rends griffes gelé', ['aj', 'et'], 1);
+    const res = dedupePowers([p1, p2]);
+    expect(res).toHaveLength(1);
+    expect(res[0].id).toBe('pw:A#1');
+  });
+
+  it('T-INCOMPARABLE : traits affichés ni inclus ni incluants ⇒ les deux conservés', () => {
+    const p1 = pw('pw:A', 'griffes sur lame', ['aj', 'r'], 1);
+    const p2 = pw('pw:B', 'griffes sur os', ['aj', 'p'], 1);
+    expect(dedupePowers([p1, p2])).toHaveLength(2);
+  });
+
+  it('T-POSITION : un primaire et un secondaire ne se dédupliquent JAMAIS (positions ≠)', () => {
+    // Le secondaire (#1) a des traits affichés ⊂ ceux du primaire (#0) mais ils ne sont pas comparés.
+    const prim = pw('pw:A', 'courir feu avec griffes', ['a', 'e', 'aj'], 0);
+    const sec = pw('pw:B', 'rends griffes', ['aj'], 1);
+    expect(dedupePowers([prim, sec])).toHaveLength(2);
+  });
+
+  it('T-GUARD : garde-fou libellé strictement identique (traits distincts) ⇒ un seul gardé', () => {
+    // Deux primaires de traits différents (a1 vs a2, homonymes) mais MÊME libellé ⇒ garde le 1ᵉʳ.
+    const p1 = pw('pw:A', 'courir feu', ['a1', 'e1'], 0);
+    const p2 = pw('pw:B', 'courir feu', ['a2', 'e1'], 0);
+    const res = dedupePowers([p1, p2]);
+    expect(res).toHaveLength(1);
+    expect(res[0].id).toBe('pw:A#0');
+  });
+
+  it('T-2POWERS-PRESERVED : les deux pouvoirs d’une même feuille (libellés distincts) sont gardés', () => {
+    const res = derivePowersFromTraits(active('a1', 'e1', 'et1'), catStar(), P, fakeRng());
+    expect(res.pouvoirs.map((p) => p.label)).toEqual(['courir feu gelé', 'rends feu gelé']);
+  });
+
+  it('T-GUARD-INTEGRATION : deux feuilles a-seules homonymes ⇒ garde-fou ⇒ un seul « courir feu »', () => {
+    // a1, a2 tous deux « courir » ⇒ 2 sous-listes « {a} {Ke} » ⇒ deux primaires « courir feu »
+    // (traits affichés incomparables {a1,e1} vs {a2,e1}) ⇒ le garde-fou libellé n'en garde qu'un.
     const res = derivePowersFromTraits(
       active('a1', 'a2'),
       catDupLabel(),
       P,
-      fakeRng({ chances: [true, true] }), // {Ke} réussi pour chaque sous-liste
+      fakeRng({ chances: [true, true] }),
     );
     expect(res.pouvoirs).toHaveLength(1);
     expect(res.pouvoirs[0].label).toBe('courir feu');
-    // La copie conservée est la PREMIÈRE produite (sous-liste de a1) — dédup avant §7.2.
     expect(res.pouvoirs[0].id).toBe('pw:DERIVE:a1+e1#0');
-    // P/M pas encore attribuées à ce stade (déléguées aux appelants après dérivation).
-    expect(res.pouvoirs[0].puissance).toBe(0);
-    expect(res.pouvoirs[0].maitrise).toBe(0);
   });
 
-  it('T-DEDUP-DISTINCT : deux libellés distincts d’une même branche ne sont PAS fusionnés', () => {
-    // Feuille a/e/et ⇒ « courir feu gelé » ; « rends feu gelé » (libellés distincts) ⇒ 2 pouvoirs conservés.
-    const res = derivePowersFromTraits(active('a1', 'e1', 'et1'), catDupLabel(), P, fakeRng());
-    expect(res.pouvoirs).toHaveLength(2);
-    expect(res.pouvoirs.map((p) => p.label)).toEqual(['courir feu gelé', 'rends feu gelé']);
-  });
-
-  it('T-DEDUP-DET : déterministe (même seed ⇒ résultat identique)', () => {
-    const a = derivePowersFromTraits(
-      active('a1', 'a2'),
-      catDupLabel(),
-      P,
-      fakeRng({ chances: [true, true] }),
-    );
-    const b = derivePowersFromTraits(
-      active('a1', 'a2'),
-      catDupLabel(),
-      P,
-      fakeRng({ chances: [true, true] }),
-    );
+  it('T-DET : déterministe (même seed ⇒ résultat identique)', () => {
+    const a = derivePowersFromTraits(active('a1', 'e1', 'et1'), catStar(), P, fakeRng());
+    const b = derivePowersFromTraits(active('a1', 'e1', 'et1'), catStar(), P, fakeRng());
     expect(a).toEqual(b);
   });
 });

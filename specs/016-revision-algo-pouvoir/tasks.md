@@ -8,6 +8,8 @@
 
 **Bugfix**: 2026-08-07 — BUG-001 Déduplication des pouvoirs de libellé identique (voir Phase 7 ci-dessous, `bugs/BUG-001.md`).
 
+**Bugfix**: 2026-08-07 — BUG-002 **Remplace** BUG-001 : déduplication par **position + sous-ensemble de traits affichés** + garde-fou libellé (voir Phase 8 ci-dessous, `bugs/BUG-002.md`). La Phase 7 (dédup par libellé) est **supersédée** — sa logique est retirée en Phase 8.
+
 **Organization**: par user story (P1→P3). ⚠️ Les stories touchent les **mêmes** fichiers cœur (`powerLabelTree.ts`, `traitsToPowers.ts`) : leurs tâches d'implémentation sont **séquentielles** (pas de `[P]` inter-stories sur un même fichier). Les tâches de tests dans des fichiers distincts peuvent être `[P]`.
 
 ## Format: `[ID] [P?] [Story] Description`
@@ -105,7 +107,7 @@
 
 ---
 
-## Phase 7: Bugfix BUG-001 — Déduplication des pouvoirs de libellé identique
+## Phase 7: Bugfix BUG-001 — Déduplication des pouvoirs de libellé identique — ⚠️ SUPERSEDED par BUG-002 (Phase 8)
 
 **Goal**: une personne ne conserve **jamais** deux pouvoirs de libellé identique. La déduplication garde la **1ʳᵉ** copie (ordre de production) et s'exécute **avant** l'attribution des puissances/maîtrises (§7.2), sans comparer aucune statistique et sans consommer de RNG.
 
@@ -126,11 +128,33 @@
 
 ---
 
+## Phase 8: Bugfix BUG-002 — Déduplication par position + traits affichés (remplace la Phase 7)
+
+**Goal**: une personne ne conserve, pour une **position** donnée (primaires entre eux, secondaires entre eux), que les pouvoirs dont l'ensemble de **traits affichés** est **maximal** ; un **garde-fou** final retire tout doublon de **libellé** strict (cas des traits homonymes). Étape **avant** l'attribution P/M, sans stat comparée, sans RNG, ADN inchangé, déterministe. La dédup par libellé (Phase 7) est **retirée**.
+
+**Independent Test**: deux secondaires aux traits affichés emboîtés ⇒ le moins riche supprimé ; incomparables ⇒ deux conservés ; primaire↔secondaire jamais fusionnés ; catalogue à traits homonymes ⇒ garde-fou. Déterministe à seed fixe.
+
+### Tests (à écrire d'abord, doivent échouer)
+
+- [X] T021 [BUG-002] Tests seed-fixe dans `tests/unit/traits-to-powers.test.ts` (via `dedupePowers` exporté + intégration) : T-SUBSET (p2 inclus dans p1 ⇒ p2 supprimé), T-SUBSET-REVERSE (p1 inclus dans p2 ⇒ p1 supprimé), T-EQUAL (égaux ⇒ 1ᵉʳ gardé), T-INCOMPARABLE (2 conservés), T-POSITION (primaire vs secondaire jamais comparés), T-GUARD + T-GUARD-INTEGRATION (garde-fou homonymes), T-2POWERS-PRESERVED, T-DET. (FR-011, FR-013, FR-014, SC-007, §6.4.3)
+
+### Implémentation
+
+- [X] T022 [BUG-002] Dans `src/core/powers/powerLabelTree.ts`, ajout de `powerTemplatesFromSublist` renvoyant par gabarit `{ label; shownTypeKeys }` (clés de type **affichées** dans le gabarit) ; `powerLabelFromSublist` devient une enveloppe (`.map(t => t.label)`), libellés inchangés. (FR-011)
+- [X] T023 [BUG-002] Dans `src/core/powers/traitsToPowers.ts` : `transformSublist` pose `Pouvoir.traitIds` = **traits affichés** (types mentionnés dans le gabarit + `K` affichés) ; `dedupeByLabel` **retiré** et remplacé, en fin de `derivePowersFromTraits`, par `dedupePowers` = `dedupeBySubsumption` (comparer les pouvoirs de **même position** via le suffixe `#0`/`#1` ; supprimer tout pouvoir dont les traits affichés sont inclus dans ceux d'un autre ; maximaux gardés ; égalité ⇒ 1ᵉʳ) **puis** garde-fou libellé. Aucun tirage RNG, ADN inchangé. (FR-011, FR-013, FR-014, INV-C7/C15/C16)
+- [X] T024 [BUG-002] Tests Phase 7 (dédup par libellé) remplacés par les tests BUG-002 ; assertion T-TRAITIDS mise à jour (le secondaire n'affiche plus `{e}`). Suite complète **356 tests verts** — aucun autre réalignement nécessaire.
+
+### Polish
+
+- [X] T025 [P] [BUG-002] Bumper `package.json` en version **patch** (0.15.1 → 0.15.2) puis portes de qualité finales : `npm run lint`, `npm run build`, `npm run test` **tous verts**.
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
 
-- **Setup (T001)** → **Foundational (T002–T004)** → **US1 (T005–T008)** → **US2 (T009–T010)** → **US3 (T011–T012)** → **Polish (T013–T016)** → **Bugfix BUG-001 (T017–T020)**.
+- **Setup (T001)** → **Foundational (T002–T004)** → **US1 (T005–T008)** → **US2 (T009–T010)** → **US3 (T011–T012)** → **Polish (T013–T016)** → **Bugfix BUG-001 (T017–T020, superseded)** → **Bugfix BUG-002 (T021–T025)**.
 - Foundational **bloque** toutes les stories (refactor de forme + id).
 
 ### Ordre des stories (fichiers partagés)
